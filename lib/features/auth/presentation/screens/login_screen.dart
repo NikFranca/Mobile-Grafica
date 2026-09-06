@@ -1,291 +1,210 @@
-// Importa o pacote de componentes visuais do Flutter baseados no Material Design.
+// Importa a biblioteca principal do Flutter baseada em Material Design para usar widgets como Scaffold, Text, etc.
 import 'package:flutter/material.dart';
 
-// Declara um widget com estado (StatefulWidget) chamado LoginScreen para a tela de login.
+// Importa o pacote HTTP para permitir que o aplicativo faça requisições web (POST, GET) para a API.
+import 'package:http/http.dart' as http;
+
+// Importa a biblioteca de conversão para transformar dados em formato JSON e vice-versa.
+import 'dart:convert';
+
+// Define a classe LoginScreen que herda de StatefulWidget porque ela possui estados que mudam (como o loading e os textos).
 class LoginScreen extends StatefulWidget {
-  // Construtor da classe, aceitando opcionalmente uma chave (key) para identificação na árvore de widgets.
   const LoginScreen({super.key});
 
-  // Cria o estado interno associado a esta tela, instanciando a classe _LoginScreenState.
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-// Classe que gerencia o estado e a lógica da tela de login.
+// Classe de estado correspondente à LoginScreen, onde toda a lógica e a interface interativa residem.
 class _LoginScreenState extends State<LoginScreen> {
-  // Controlador para gerenciar e capturar o texto digitado no campo de e-mail.
+  // Controlador para monitorar e capturar o que o usuário digita no campo de e-mail.
   final _emailController = TextEditingController();
-  
-  // Controlador para gerenciar e capturar o texto digitado no campo de senha.
+
+  // Controlador para monitorar e capturar o que o usuário digita no campo de senha.
   final _passwordController = TextEditingController();
-  
-  // Chave global usada para identificar e validar o formulário.
+
+  // Chave global usada para identificar, gerenciar e disparar as validações do formulário.
   final _formKey = GlobalKey<FormState>();
 
-  // Método executado quando o widget é destruído da árvore, liberando recursos da memória.
+  // Variável booleana para controlar quando o botão deve exibir o indicador de carregamento (spinner).
+  bool _isLoading = false;
+
+  // Método executado automaticamente quando a tela é destruída, limpando os controladores da memória para evitar vazamentos.
   @override
   void dispose() {
-    // Descarta o controlador de e-mail para evitar vazamento de memória.
     _emailController.dispose();
-    
-    // Descarta o controlador de senha para evitar vazamento de memória.
     _passwordController.dispose();
-    
-    // Chama o método dispose da classe pai (State).
     super.dispose();
   }
 
-  // Função chamada ao tentar realizar o login.
-  void _fazerLogin() {
-    // Verifica se todos os validadores dos campos do formulário passaram com sucesso.
+  // Função assíncrona responsável por validar os campos locais e enviar a requisição de login para a API.
+  Future<void> _fazerLogin() async {
+    // Verifica se todos os validadores dos campos do formulário retornaram sucesso (sem erros).
     if (_formKey.currentState!.validate()) {
-      // Armazena o texto atual do campo de e-mail na variável 'email'.
-      String email = _emailController.text;
+      // Atualiza o estado da tela para ativar o carregamento e desativar o botão.
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Remove espaços extras e armazena o texto digitado no campo de e-mail.
+      final String email = _emailController.text.trim();
       
-      // Exibe uma mensagem no console simulando a tentativa de login com o e-mail informado.
-      print('Tentando logar com: $email');
+      // Remove espaços extras e armazena o texto digitado no campo de senha.
+      final String password = _passwordController.text.trim();
+
+      // Define o endereço da rota da API que vai receber os dados de login.
+      final Uri url = Uri.parse('http://localhost:5000/api/usuarios/login');
+
+      try {
+        // Dispara uma requisição HTTP do tipo POST para a API enviando os dados em JSON.
+        final response = await http.post(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'email': email,
+            'password': password,
+          }),
+        );
+
+        // Verifica se o widget ainda está montado na tela antes de continuar, prevenindo erros de contexto assíncrono.
+        if (!mounted) return;
+
+        // Se a API retornar código 200 (OK) ou 201 (Criado/Autorizado), o login deu certo.
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          // Exibe uma barra de notificação (SnackBar) informando o sucesso ao usuário.
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Login realizado com sucesso!')),
+          );
+
+          // Redireciona para a rota 'home' e remove a tela de login atual da pilha de navegação.
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          // Caso a API retorne um código de erro (credenciais inválidas), exibe uma mensagem de falha.
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('E-mail ou senha inválidos.')),
+          );
+        }
+      } catch (e) {
+        // Se ocorrer um erro de rede (ex: API desligada), captura a exceção e avisa o usuário.
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não foi possível conectar ao servidor.')),
+        );
+      } finally {
+        // Bloco executado sempre ao final (com sucesso ou erro), desativando o estado de carregamento.
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
     }
   }
 
-  // Método principal que constrói a interface gráfica (UI) da tela.
+  // Método que constrói visualmente os elementos da interface da tela de login.
   @override
   Widget build(BuildContext context) {
-    // Retorna a estrutura visual padrão de uma página do Flutter (Scaffold).
     return Scaffold(
-      // Define a cor de fundo da tela inteira como um azul escuro personalizado.
-      backgroundColor: const Color(0xFF0B132B), 
-      
-      // Restringe o conteúdo para que ele não fique sobre áreas de interrupção do celular (como entalhes ou barras de navegação).
+      // Define a cor de fundo padrão da tela inteira.
+      backgroundColor: const Color(0xFF0B132B),
+      // Garante que o conteúdo não fique sobreposto à barra de status ou entalhes físicos do aparelho.
       body: SafeArea(
-        // Centraliza o conteúdo filho na tela.
         child: Center(
-          // Permite que a tela seja rolável caso o conteúdo ultrapasse a altura da tela (útil quando o teclado abre).
+          // Permite que o conteúdo role caso o teclado virtual cubra a tela.
           child: SingleChildScrollView(
-            // Adiciona um espaçamento interno horizontal de 24 pixels nas bordas.
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            
-            // Organiza os elementos filhos verticalmente em uma coluna.
             child: Column(
-              // Alinha os elementos verticalmente no centro da coluna.
               mainAxisAlignment: MainAxisAlignment.center,
-              
-              // Lista de componentes exibidos dentro da coluna.
               children: [
-                
-                // Alinha o widget filho dentro dele.
-                Align(
-                  // Posiciona o elemento no canto superior direito do espaço disponível.
-                  alignment: Alignment.topRight,
-                  
-                  // Adiciona espaçamento interno ou externo ao redor do filho.
-                  child: Padding(
-                    // Aplica margem inferior de 40 pixels e margem à direita de 8 pixels.
-                    padding: const EdgeInsets.only(bottom: 40.0, right: 8.0),
-                    
-                    // Caixa invisível ou estilizável usada para definir dimensões para a logo em texto.
-                    child: Container(
-                      // Define a altura do container como 40 pixels.
-                      height: 40,
-                      
-                      // Define a largura do container como 80 pixels.
-                      width: 80,
-                      
-                      // Deixa a cor do container transparente.
-                      color: Colors.transparent,
-                      
-                      // Centraliza o texto "CSV" dentro do container.
-                      child: const Center(
-                        // Exibe o texto simulando a logo.
-                        child: Text(
-                          'CSV',
-                          // Estilização do texto da logo.
-                          style: TextStyle(
-                            color: Colors.cyanAccent,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                
-                // Container centralizado com bordas arredondadas e efeito de cartão para os inputs.
+                // Caixa centralizada que abriga o formulário de login com bordas arredondadas e sombra.
                 Container(
-                  // Adiciona preenchimento interno de 24 pixels em todos os lados.
                   padding: const EdgeInsets.all(24.0),
-                  
-                  // Decoração visual do container (cor translúcida, bordas e sombras).
                   decoration: BoxDecoration(
-                    // Define a cor de fundo do cartão como um azul claro com opacidade.
                     color: const Color(0xFFD6E2FE).withValues(alpha: 0.85),
-                    
-                    // Arredonda as pontas do container em 24 pixels.
                     borderRadius: BorderRadius.circular(24.0),
-                    
-                    // Adiciona uma lista de sombras ao redor do container.
                     boxShadow: [
                       BoxShadow(
-                        // Define a cor da sombra baseada em ciano com transparência.
-                        color: Colors.cyan..withValues(alpha: 0.85),
-                        
-                        // Define o raio de desfoque da sombra.
+                        color: Colors.cyan.withValues(alpha: 0.3),
                         blurRadius: 20,
-                        
-                        // Define o quanto a sombra se espalha.
                         spreadRadius: 2,
                       ),
                     ],
                   ),
-                  
-                  // Agrupa os campos de texto em um formulário para gerenciar validações.
+                  // Agrupa os campos de entrada de dados sob validação controlada pela chave.
                   child: Form(
-                    // Associa a chave global de formulário criada anteriormente.
                     key: _formKey,
-                    
-                    // Organiza os campos de entrada verticalmente dentro do formulário.
                     child: Column(
-                      // Estica os filhos horizontalmente para preencherem a largura do container.
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      
-                      // Faz a coluna ocupar apenas o espaço vertical necessário para seus filhos.
                       mainAxisSize: MainAxisSize.min,
-                      
-                      // Lista de elementos de entrada do formulário.
                       children: [
-                        
-                        // Campo de texto interativo específico para o e-mail.
+                        // Campo de texto para digitar o e-mail.
                         TextFormField(
-                          // Conecta o campo ao controlador de e-mail.
                           controller: _emailController,
-                          
-                          // Altera o teclado do celular para o layout focado em endereços de e-mail.
                           keyboardType: TextInputType.emailAddress,
-                          
-                          // Configura a aparência visual do input.
                           decoration: InputDecoration(
-                            // Texto flutuante/rótulo do campo.
                             labelText: 'Gmail:',
-                            
-                            // Estilização da cor do texto do rótulo.
                             labelStyle: const TextStyle(color: Colors.black54),
-                            
-                            // Ativa o preenchimento de cor no fundo do input.
                             filled: true,
-                            
-                            // Cor de fundo do campo de texto com opacidade.
-                            fillColor: Colors.white.withValues(alpha: 0.85),
-                            
-                            // Define a borda do campo de texto.
+                            fillColor: Colors.white.withValues(alpha: 0.6),
                             border: OutlineInputBorder(
-                              // Arredonda as bordas do input em 12 pixels.
                               borderRadius: BorderRadius.circular(12.0),
-                              
-                              // Remove a linha padrão de contorno da borda.
                               borderSide: BorderSide.none,
                             ),
-                            
-                            // Espaçamento interno do texto digitado dentro do input.
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 14,
                             ),
                           ),
-                          
-                          // Função de validação executada ao disparar a validação do formulário.
+                          // Validador local para garantir que o campo não esteja vazio.
                           validator: (value) {
-                            // Verifica se o texto está nulo ou vazio.
                             if (value == null || value.isEmpty) {
-                              // Retorna mensagem de erro se o campo estiver vazio.
                               return 'Por favor, digite seu e-mail';
                             }
-                            // Retorna nulo se estiver tudo correto (sem erros).
                             return null;
                           },
                         ),
-                        
-                        // Caixa invisível usada para criar um espaçamento vertical de 16 pixels.
                         const SizedBox(height: 16),
-                        
-                        // Campo de texto interativo específico para a senha.
+                        // Campo de texto para digitar a senha (com caracteres ocultos).
                         TextFormField(
-                          // Conecta o campo ao controlador de senha.
                           controller: _passwordController,
-                          
-                          // Oculta os caracteres digitados (substituindo por pontos) para segurança.
                           obscureText: true,
-                          
-                          // Configura a aparência visual do input de senha.
                           decoration: InputDecoration(
-                            // Rótulo do campo.
                             labelText: 'Password:',
-                            
-                            // Estilização do rótulo.
                             labelStyle: const TextStyle(color: Colors.black54),
-                            
-                            // Ativa o preenchimento de cor de fundo.
                             filled: true,
-                            
-                            // Cor de fundo esbranquiçada com opacidade.
-                            fillColor: Colors.white.withValues(alpha: 0.85),
-                            
-                            // Configuração da borda arredondada sem linha de contorno.
+                            fillColor: Colors.white.withValues(alpha: 0.6),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
                               borderSide: BorderSide.none,
                             ),
-                            
-                            // Espaçamento interno do input.
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 14,
                             ),
                           ),
-                          
-                          // Função de validação para a senha.
+                          // Validador local para checar se a senha preenche os requisitos mínimos.
                           validator: (value) {
-                            // Verifica se está vazio.
                             if (value == null || value.isEmpty) {
                               return 'Por favor, digite sua senha';
                             }
-                            // Verifica se a senha possui menos de 6 caracteres.
                             if (value.length < 6) {
                               return 'A senha deve ter pelo menos 6 caracteres';
                             }
-                            // Retorna nulo se passou por todas as validações.
                             return null;
                           },
                         ),
-                        
-                        // Espaçamento vertical de 12 pixels.
                         const SizedBox(height: 12),
-                        
-                        // Alinha o botão de texto para criar conta.
+                        // Botão em formato de texto para redirecionar o usuário para a tela de cadastro.
                         Align(
-                          // Centraliza o link horizontalmente.
                           alignment: Alignment.center,
-                          
-                          // Botão com visual semelhante a um texto simples (clicável).
                           child: TextButton(
-                            // Ação executada ao pressionar o botão de criar conta.
                             onPressed: () {
-                              // Exemplo de navegação para uma página vazia/outra tela usando rotas nomeadas.
-                              // Substitua '/register' pela rota da sua página de cadastro.
-                              // Navigator.pushNamed(context, '/register');
-                              
-                              // Alternativa direta com MaterialPageRoute (caso não use rotas nomeadas):
-                              /*
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const RegisterScreen()),
-                              );
-                              */
+                              // Comando de navegação para abrir a tela de registro/criação de usuário.
+                              Navigator.pushNamed(context, '/cadastro');
                             },
-                            
-                            // O texto exibido no botão.
                             child: const Text(
                               'Create account',
-                              // Estilização do texto indicando que é um link clicável azul.
                               style: TextStyle(
                                 color: Colors.blue,
                                 fontSize: 14,
@@ -293,49 +212,37 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
-                        
-                        // Espaçamento vertical de 12 pixels.
                         const SizedBox(height: 12),
-                        
-                        // Centraliza o botão de Sign In.
+                        // Botão principal de confirmação ("Sign In").
                         Center(
-                          // Restringe a largura do botão para 140 pixels.
                           child: SizedBox(
                             width: 140,
-                            
-                            // Botão elevado padrão do Material Design.
                             child: ElevatedButton(
-                              // Associa a função de clique ao método de login criado na classe.
-                              onPressed: _fazerLogin,
-                              
-                              // Estilização avançada do botão (cores, sombras e bordas).
+                              // Se estiver carregando (_isLoading = true), o botão fica desativado (null).
+                              onPressed: _isLoading ? null : _fazerLogin,
                               style: ElevatedButton.styleFrom(
-                                // Cor de fundo cinza-azulado claro do botão.
                                 backgroundColor: const Color(0xFFD0D7E2),
-                                
-                                // Cor do texto/ícone de primeiro plano.
                                 foregroundColor: Colors.black87,
-                                
-                                // Elevação da sombra do botão.
                                 elevation: 4,
-                                
-                                // Formato das bordas do botão (totalmente arredondadas).
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20.0),
                                 ),
-                                
-                                // Preenchimento interno vertical do botão.
                                 padding: const EdgeInsets.symmetric(vertical: 12),
                               ),
-                              
-                              // Texto exibido na parte interna do botão.
-                              child: const Text(
-                                'Sign In',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                              // Mostra um ícone circular de carregamento se estiver processando, ou o texto padrão.
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : const Text(
+                                      'Sign In',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                             ),
                           ),
                         ),
