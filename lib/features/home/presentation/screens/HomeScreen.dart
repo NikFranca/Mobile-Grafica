@@ -1,7 +1,9 @@
 import 'package:crud_mobile_grafica/features/auth/presentation/screens/cadastro_screen.dart';
 import 'package:crud_mobile_grafica/features/home/presentation/screens/FiltrosProduto.dart';
 import 'package:crud_mobile_grafica/features/home/presentation/screens/addProdutos.dart';
-import 'package:crud_mobile_grafica/features/home/presentation/screens/edicao_screen.dart';
+import 'package:crud_mobile_grafica/features/products/presentation/screens/product_register_screen.dart';
+import 'edicao_screen.dart';
+
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -67,7 +69,7 @@ class HomeScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const addProdutos()),
+                  MaterialPageRoute(builder: (context) => const ProductRegisterScreen()),
                 );
               },
             ),
