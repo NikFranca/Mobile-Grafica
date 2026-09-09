@@ -4,7 +4,7 @@ import 'features/auth/presentation/screens/cadastro_screen.dart'; // Importa a t
 import 'features/home/presentation/screens/HomeScreen.dart'; // Importa a tela de Home
 import 'features/home/presentation/screens/edicao_screen.dart'; // Importa a tela de edição
 import 'features/home/presentation/screens/addProdutos.dart';
-import 'features/home/presentation/FiltrosProduto.dart';
+import 'features/home/presentation/screens/FiltrosProduto.dart';
 
 void main() {
   runApp(const MyApp());

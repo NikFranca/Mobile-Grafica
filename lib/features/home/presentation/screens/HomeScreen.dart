@@ -1,5 +1,5 @@
 import 'package:crud_mobile_grafica/features/auth/presentation/screens/cadastro_screen.dart';
-import 'package:crud_mobile_grafica/features/home/presentation/FiltrosProduto.dart';
+import 'package:crud_mobile_grafica/features/home/presentation/screens/FiltrosProduto.dart';
 import 'package:crud_mobile_grafica/features/home/presentation/screens/addProdutos.dart';
 import 'package:crud_mobile_grafica/features/home/presentation/screens/edicao_screen.dart';
 import 'package:flutter/material.dart';
