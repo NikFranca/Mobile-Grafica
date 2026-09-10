@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:crud_mobile_grafica/features/home/presentation/screens/HomeScreen.dart';
 
 class ProductRegisterScreen extends StatefulWidget {
   const ProductRegisterScreen({super.key});
@@ -190,6 +191,12 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
                     IconButton(
                       onPressed: () {
                         print('Home');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const HomeScreen(),
+                          ),
+                        );
                       },
                       icon: const Icon(Icons.home, size: 34),
                     ),

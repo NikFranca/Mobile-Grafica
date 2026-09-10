@@ -1,65 +1,173 @@
-import 'package:crud_mobile_grafica/features/auth/presentation/screens/cadastro_screen.dart';
 import 'package:crud_mobile_grafica/features/home/presentation/screens/FiltrosProduto.dart';
 import 'package:crud_mobile_grafica/features/home/presentation/screens/addProdutos.dart';
 import 'package:crud_mobile_grafica/features/products/presentation/screens/product_register_screen.dart';
+
 import 'edicao_screen.dart';
 
 import 'package:flutter/material.dart';
 
+int pedidos = 777;
+int pagos = 390;
+int pendentes = 387;
+int saldo = -14;
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
+  //indicador reutilizavel(função)
+  Widget indicador({
+    required String titulo,
+    required int valor,
+    required IconData icone,
+    Color corValor = Colors.green,
+  }) {
+    return Container(
+      height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+
+      decoration: BoxDecoration(
+        color: const Color(0xFFE5EDF9),
+        borderRadius: BorderRadius.circular(30),
+      ),
+
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$titulo:',
+            style: const TextStyle(fontSize: 25, color: Colors.black),
+          ),
+
+          const SizedBox(width: 5),
+
+          Text('$valor', style: TextStyle(fontSize: 25, color: corValor)),
+
+          const SizedBox(width: 8),
+
+          Icon(icone, size: 38, color: Colors.black),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Página Inicial')),
-      body: Center(child: Text("")),
+      backgroundColor: const Color(0xFF081129),
+      appBar: AppBar(
+        title: const Text('Página Inicial'),
+        backgroundColor: const Color(0xFF081129),
+        actions: [
+          Padding(
+            padding: const EdgeInsetsGeometry.only(left: 14),
+            child: CircleAvatar(
+              radius: 25,
+              backgroundImage: AssetImage('assets/images/personagem.png'),
+            ),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            //aqui tem numeros de pedidos
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                indicador(
+                  titulo: 'Pedidos',
+                  valor: 777,
+                  icone: Icons.handshake_rounded,
+                ),
+                Container(
+                  height: 50,
+                  padding: const EdgeInsets.symmetric(horizontal: 25),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE5EDF9),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Text(
+                    //coloquei um numero ficticio
+                    '-14',
+                    style: TextStyle(
+                      fontSize: 25,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
 
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  indicador(
+                    titulo: 'Pagos',
+                    valor: pagos,
+                    icone: Icons.payments,
+                  ),
+
+                  indicador(
+                    titulo: 'Pendente',
+                    valor: pendentes,
+                    icone: Icons.currency_exchange,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+            // PENDENTE
+            
+
+          ],
+        ),
+      ),
+
+      //aqui fica os botãos de baixo
       bottomNavigationBar: Container(
-        margin: const EdgeInsets.all(16.0), //barra das bordas da tela
-        padding: const EdgeInsets.symmetric(
-          vertical: 0.30,
-        ), // Altura interna da barra
+        margin: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(vertical: 0.30),
         decoration: BoxDecoration(
-          // Cria o fundo cinza em gradiente igual ao da imagem
           gradient: LinearGradient(
             colors: [Colors.grey[300]!, Colors.grey[400]!],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
-          borderRadius: BorderRadius.circular(50.0), //Border circular
+          borderRadius: BorderRadius.circular(50.0),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withValues(alpha: 0.2),
               blurRadius: 8,
-              offset: Offset(0, 3), // Sombra leve abaixo da barra
+              offset: const Offset(0, 3),
             ),
           ],
         ),
         child: Row(
-          // 🌟 O segredo do alinhamento: distribui os botões com espaços iguais
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            // Botão 1: Home
             IconButton(
               icon: const Icon(Icons.home, size: 45, color: Colors.black),
               onPressed: () {
                 // Ação do botão Home
               },
             ),
-
-            // Botão 2: Busca
             IconButton(
               icon: const Icon(Icons.search, size: 45, color: Colors.black),
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const Filtrosproduto()),
+                  MaterialPageRoute(
+                    builder: (context) => const ProductRegisterScreen(),
+                  ),
                 );
               },
             ),
-
-            // Botão 3: Adicionar (Mais)
             IconButton(
               icon: const Icon(
                 Icons.add_circle_outline,
@@ -69,7 +177,9 @@ class HomeScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const ProductRegisterScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const ProductRegisterScreen(),
+                  ),
                 );
               },
             ),
@@ -81,101 +191,3 @@ class HomeScreen extends StatelessWidget {
 }
 
 //catalago de itens
-class ListContents extends StatelessWidget {
-  final List<CatalagoItem> secoes = [
-    CatalagoItem(
-      titulo: 'Widgets de layout',
-      icone: Icons.text_fields,
-      descricao:
-          'Exemplos de widgets de layout basico como text, Image icon...',
-      destino: edicaoScreen(),
-    ),
-    CatalagoItem(
-      titulo: 'Widgets de conteudo',
-      icone: Icons.text_fields,
-      descricao:
-          'Exemplos de widgets de conteudo basico como text, Image icon...',
-      destino: edicaoScreen(),
-    ),
-  ];
-  ListContents({super.key});
-  //fazendo a listagem de itens do catalago
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Catalogo de widgets')),
-      body: GridView.count(
-        crossAxisCount: 2,
-        padding: EdgeInsets.all(16),
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.92,
-        children: secoes
-            //fazendo a listagem de itens do catalago com GestureDetector
-            // para navegar para a tela de destino
-            .map(
-              (item) => GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => item.destino),
-                ),
-                child: Card(
-                  elevation: 4,
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        Icon(
-                          item.icone,
-                          size: 48,
-                          color: const Color.fromARGB(255, 0, 174, 255),
-                        ),
-                        //deixando o text centralizado e com maxLines para
-                        //não estourar o tamanho do card
-                        Text(
-                          item.titulo,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 20,
-                            color: const Color.fromARGB(255, 0, 0, 0),
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        //deixando o text centralizado e com maxLines para não
-                        // estourar o tamanho do card
-                        Text(
-                          item.descricao,
-                          textAlign: TextAlign.center,
-                          maxLines: 3,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: const Color.fromARGB(255, 117, 117, 117),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            )
-            .toList(),
-      ),
-    );
-  }
-}
-
-class CatalagoItem {
-  final String titulo;
-  final IconData icone;
-  final String descricao;
-  final Widget destino;
-
-  CatalagoItem({
-    required this.titulo,
-    required this.icone,
-    required this.descricao,
-    required this.destino,
-  });
-}
