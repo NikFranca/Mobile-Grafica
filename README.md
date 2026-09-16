@@ -14,3 +14,6 @@ git push
 
 comando para atualizar o projeto localmente:
 git pull
+
+flutter run -d edge --web-port=8080:
+rodar o projeto
