@@ -14,46 +14,35 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
   // CONTROLADORES DOS CAMPOS
   // ============================================================
 
-  // Guarda o que foi digitado no campo Nome
   final nomeController = TextEditingController();
-
-  // Guarda o que foi digitado no campo Preço
   final precoController = TextEditingController();
-
-  // Guarda o que foi digitado no campo Descrição
   final descricaoController = TextEditingController();
 
   // ============================================================
   // IMAGEM
   // ============================================================
 
-  // Guarda a imagem selecionada pelo usuário.
-  // O "?" significa que ela pode começar sem nenhuma imagem.
+  // Guarda a imagem selecionada pelo usuário
   PlatformFile? imagemSelecionada;
 
   // Função responsável por abrir o seletor de imagens
   Future<void> selecionarImagem() async {
-    // Abre o seletor de arquivos.
-    // FileType.image permite selecionar somente imagens.
     final resultado = await FilePicker.pickFiles(type: FileType.image);
 
-    // Verifica se o usuário realmente escolheu alguma imagem.
+    // Verifica se o usuário realmente selecionou uma imagem
     if (resultado != null && resultado.isNotEmpty) {
       setState(() {
-        // Guarda a primeira imagem escolhida.
         imagemSelecionada = resultado.first;
       });
 
-      // Mostra no terminal o nome da imagem selecionada.
       debugPrint('Imagem selecionada: ${imagemSelecionada!.name}');
     }
   }
 
   // ============================================================
-  // DISPOSE
+  // LIBERA OS CONTROLADORES
   // ============================================================
 
-  // Quando a tela for fechada, libera os controladores da memória.
   @override
   void dispose() {
     nomeController.dispose();
@@ -64,21 +53,19 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
   }
 
   // ============================================================
-  // INTERFACE DA TELA
+  // CONSTRUÇÃO DA TELA
   // ============================================================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Cor azul escura do fundo.
+      // Cor de fundo da tela
       backgroundColor: const Color(0xFF081129),
 
       body: SafeArea(
         child: Column(
           children: [
-            // Expanded faz o conteúdo ocupar o espaço disponível.
             Expanded(
-              // Permite rolar a tela caso não caiba tudo.
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 25,
@@ -103,7 +90,6 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
                             shape: BoxShape.circle,
                           ),
 
-                          // Ícone provisório do logo.
                           child: const Icon(
                             Icons.water_drop,
                             color: Colors.grey,
@@ -112,30 +98,23 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
                       ],
                     ),
 
-                    // Espaço entre o logo e o campo Nome.
                     const SizedBox(height: 30),
 
                     // ==================================================
                     // CAMPO NOME
                     // ==================================================
                     TextField(
-                      // Liga o campo ao controlador do nome.
                       controller: nomeController,
 
-                      // Centraliza o texto.
                       textAlign: TextAlign.center,
 
                       decoration: InputDecoration(
-                        // Texto mostrado quando o campo está vazio.
                         hintText: 'Nome',
 
-                        // Ativa uma cor de fundo no campo.
                         filled: true,
 
-                        // Cor azul clara.
                         fillColor: const Color(0xFF8FA8E8),
 
-                        // Configuração da borda.
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide.none,
@@ -149,21 +128,17 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
                     // CAMPO PREÇO
                     // ==================================================
                     TextField(
-                      // Liga o campo ao controlador do preço.
                       controller: precoController,
 
-                      // Centraliza o texto.
                       textAlign: TextAlign.center,
 
-                      // No celular, solicita o teclado numérico.
+                      // Abre teclado numérico no celular
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
 
-                      // Impede que letras sejam digitadas.
-                      //
-                      // Permitidos:
-                      // números 0-9
+                      // Permite somente:
+                      // números
                       // vírgula
                       // ponto
                       inputFormatters: [
@@ -173,10 +148,11 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
                       decoration: InputDecoration(
                         hintText: 'Preço',
 
-                        // Coloca "R$" antes do valor.
+                        // Adiciona R$ antes do valor
                         prefixText: 'R\$ ',
 
                         filled: true,
+
                         fillColor: const Color(0xFF8FA8E8),
 
                         border: OutlineInputBorder(
@@ -189,11 +165,10 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
                     const SizedBox(height: 30),
 
                     // ==================================================
-                    // SELEÇÃO DA IMAGEM
+                    // SELECIONAR IMAGEM
                     // ==================================================
                     InkWell(
-                      // Quando clicar no quadrado,
-                      // executa selecionarImagem().
+                      // Ao clicar, abre os arquivos
                       onTap: selecionarImagem,
 
                       child: Container(
@@ -202,23 +177,24 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
 
                         decoration: BoxDecoration(
                           color: const Color(0xFFDCE8F5),
+
                           borderRadius: BorderRadius.circular(12),
                         ),
 
                         child: Center(
-                          // Se nenhuma imagem foi escolhida,
-                          // mostra o símbolo de "+".
-                          //
-                          // Se uma imagem foi escolhida,
-                          // mostra o nome do arquivo.
+                          // Se nenhuma imagem foi selecionada,
+                          // mostra o +
                           child: imagemSelecionada == null
                               ? const Icon(
                                   Icons.add,
                                   size: 70,
                                   color: Color(0xFF9BE5BB),
                                 )
+                              // Se já existe uma imagem,
+                              // mostra confirmação
                               : Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
+
                                   children: [
                                     const Icon(
                                       Icons.check_circle,
@@ -237,14 +213,16 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
 
                                     const SizedBox(height: 5),
 
-                                    // Mostra o nome do arquivo escolhido.
                                     Padding(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 10,
                                       ),
+
                                       child: Text(
                                         imagemSelecionada!.name,
+
                                         textAlign: TextAlign.center,
+
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
@@ -260,10 +238,8 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
                     // CAMPO DESCRIÇÃO
                     // ==================================================
                     TextField(
-                      // Liga o campo ao controlador da descrição.
                       controller: descricaoController,
 
-                      // Permite que o campo tenha várias linhas.
                       maxLines: 3,
 
                       textAlign: TextAlign.center,
@@ -272,6 +248,7 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
                         hintText: 'Descrição',
 
                         filled: true,
+
                         fillColor: const Color(0xFFDCE8F5),
 
                         border: OutlineInputBorder(
@@ -292,16 +269,14 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
 
                       child: ElevatedButton(
                         onPressed: () {
-                          // Por enquanto o botão apenas mostra
-                          // os dados no terminal.
-
+                          // Mostra os dados no terminal
                           debugPrint('Nome: ${nomeController.text}');
 
                           debugPrint('Preço: R\$ ${precoController.text}');
 
                           debugPrint('Descrição: ${descricaoController.text}');
 
-                          // Verifica se uma imagem foi escolhida.
+                          // Verifica se existe uma imagem
                           if (imagemSelecionada != null) {
                             debugPrint('Imagem: ${imagemSelecionada!.name}');
                           } else {
@@ -310,13 +285,10 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
                         },
 
                         style: ElevatedButton.styleFrom(
-                          // Cor verde do botão.
                           backgroundColor: const Color(0xFF13C28A),
 
-                          // Cor do texto.
                           foregroundColor: Colors.white,
 
-                          // Deixa o botão arredondado.
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
@@ -334,7 +306,7 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
             ),
 
             // ==========================================================
-            // BARRA DE NAVEGAÇÃO INFERIOR
+            // BARRA INFERIOR
             // ==========================================================
             Padding(
               padding: const EdgeInsets.fromLTRB(25, 5, 25, 12),
@@ -344,6 +316,7 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
 
                 decoration: BoxDecoration(
                   color: const Color(0xFFE5E5E5),
+
                   borderRadius: BorderRadius.circular(30),
                 ),
 
@@ -352,22 +325,27 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
 
                   children: [
                     // ==================================================
-                    // HOME
+                    // BOTÃO HOME
                     // ==================================================
 
                     IconButton(
                       onPressed: () {
-                        debugPrint('Home');
+                        // Abre a rota /home.
+                        //
+                        // pushReplacementNamed substitui a tela atual
+                        // pela Home.
+                        Navigator.pushReplacementNamed(context, '/home');
                       },
 
                       icon: const Icon(Icons.home, size: 34),
                     ),
 
                     // ==================================================
-                    // PESQUISAR
+                    // BOTÃO PESQUISAR
                     // ==================================================
                     IconButton(
                       onPressed: () {
+                        // Ainda não possui navegação
                         debugPrint('Pesquisar');
                       },
 
@@ -375,10 +353,11 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
                     ),
 
                     // ==================================================
-                    // ADICIONAR
+                    // BOTÃO ADICIONAR
                     // ==================================================
                     IconButton(
                       onPressed: () {
+                        // Você já está na tela de adicionar produto
                         debugPrint('Adicionar');
                       },
 
