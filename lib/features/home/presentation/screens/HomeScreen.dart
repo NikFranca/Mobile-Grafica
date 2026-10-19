@@ -1,6 +1,6 @@
 import 'package:crud_mobile_grafica/features/home/presentation/screens/FiltrosProduto.dart';
 import 'package:crud_mobile_grafica/features/products/presentation/screens/product_register_screen.dart';
-
+import 'package:crud_mobile_grafica/shared/widgets/app_bottom_bar.dart';
 import 'package:flutter/material.dart';
 
 int pedidos = 777;
@@ -125,62 +125,8 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
 
-      //aqui fica os botãos de baixo
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.all(16.0),
-        padding: const EdgeInsets.symmetric(vertical: 0.30),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.grey[300]!, Colors.grey[400]!],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-          borderRadius: BorderRadius.circular(50.0),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.home, size: 45, color: Colors.black),
-              onPressed: () {
-                // Ação do botão Home
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.search, size: 45, color: Colors.black),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProductRegisterScreen(),
-                  ),
-                );
-              },
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.add_circle_outline,
-                size: 45,
-                color: Colors.black,
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProductRegisterScreen(),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
+      bottomNavigationBar: const AppBottomBar(
+        selectedIndex: 0,
       ),
     );
   }

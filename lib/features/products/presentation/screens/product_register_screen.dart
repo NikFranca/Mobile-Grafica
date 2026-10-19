@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:crud_mobile_grafica/shared/widgets/app_bottom_bar.dart';
 
 class ProductRegisterScreen extends StatefulWidget {
   const ProductRegisterScreen({super.key});
@@ -24,6 +25,8 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
 
   // Guarda a imagem selecionada pelo usuário
   PlatformFile? imagemSelecionada;
+
+  get bottomNavigationBar => const AppBottomBar(selectedIndex: 2);
 
   // Função responsável por abrir o seletor de imagens
   Future<void> selecionarImagem() async {
@@ -308,65 +311,8 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
             // ==========================================================
             // BARRA INFERIOR
             // ==========================================================
-            Padding(
-              padding: const EdgeInsets.fromLTRB(25, 5, 25, 12),
-
-              child: Container(
-                height: 55,
-
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE5E5E5),
-
-                  borderRadius: BorderRadius.circular(30),
-                ),
-
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-
-                  children: [
-                    // ==================================================
-                    // BOTÃO HOME
-                    // ==================================================
-
-                    IconButton(
-                      onPressed: () {
-                        // Abre a rota /home.
-                        //
-                        // pushReplacementNamed substitui a tela atual
-                        // pela Home.
-                        Navigator.pushReplacementNamed(context, '/home');
-                      },
-
-                      icon: const Icon(Icons.home, size: 34),
-                    ),
-
-                    // ==================================================
-                    // BOTÃO PESQUISAR
-                    // ==================================================
-                    IconButton(
-                      onPressed: () {
-                        // Ainda não possui navegação
-                        debugPrint('Pesquisar');
-                      },
-
-                      icon: const Icon(Icons.search, size: 34),
-                    ),
-
-                    // ==================================================
-                    // BOTÃO ADICIONAR
-                    // ==================================================
-                    IconButton(
-                      onPressed: () {
-                        // Você já está na tela de adicionar produto
-                        debugPrint('Adicionar');
-                      },
-
-                      icon: const Icon(Icons.add_circle_outline, size: 34),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            bottomNavigationBar,
+              
           ],
         ),
       ),

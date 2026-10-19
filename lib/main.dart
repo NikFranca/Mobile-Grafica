@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/auth/presentation/screens/cadastro_screen.dart';
 import 'features/home/presentation/screens/HomeScreen.dart';
 //import 'features/products/presentation/screens/product_delete_update_screen.dart';
 import 'features/products/presentation/screens/product_register_screen.dart';
+import 'features/home/presentation/screens/FiltrosProduto.dart';
 
-//import 'features/home/presentation/screens/FiltrosProduto.dart';
 //import 'features/products/presentation/screens/product_register_screen.dart';
 
 void main() {
@@ -27,12 +28,11 @@ class MyApp extends StatelessWidget {
       initialRoute: '/home',
 
       routes: {
-        '/home': (context) => const HomeScreen(),
+        '/': (context) => const HomeScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const CadastroScreen(),
-        '/cadastro': (context) => const CadastroScreen(),
+        '/filtros': (context) => const Filtrosproduto(),
         '/addProduto': (context) => const ProductRegisterScreen(),
-        //'/filtros': (context) => const FiltrosProduto(),
         '/ProdutoRegistro': (context) => const ProductRegisterScreen(),
       },
     );
