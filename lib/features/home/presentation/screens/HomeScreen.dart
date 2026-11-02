@@ -1,7 +1,5 @@
-import 'package:crud_mobile_grafica/features/home/presentation/screens/FiltrosProduto.dart';
-import 'package:crud_mobile_grafica/features/products/presentation/screens/product_register_screen.dart';
-import 'package:crud_mobile_grafica/shared/widgets/app_bottom_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:crud_mobile_grafica/shared/widgets/app_bottom_bar.dart';
 
 int pedidos = 777;
 int pagos = 390;
@@ -11,7 +9,6 @@ int saldo = -14;
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  //indicador reutilizavel(função)
   Widget indicador({
     required String titulo,
     required int valor,
@@ -21,28 +18,32 @@ class HomeScreen extends StatelessWidget {
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 10),
-
       decoration: BoxDecoration(
         color: const Color(0xFFE5EDF9),
         borderRadius: BorderRadius.circular(30),
       ),
-
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '$titulo:',
-            style: const TextStyle(fontSize: 25, color: Colors.black),
-          ),
-
-          const SizedBox(width: 5),
-
-          Text('$valor', style: TextStyle(fontSize: 25, color: corValor)),
-
-          const SizedBox(width: 8),
-
-          Icon(icone, size: 38, color: Colors.black),
-        ],
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$titulo:',
+              style: const TextStyle(fontSize: 16, color: Colors.black),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              '$valor',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: corValor,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(icone, size: 24, color: Colors.black),
+          ],
+        ),
       ),
     );
   }
@@ -51,85 +52,97 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF081129),
+
       appBar: AppBar(
-        title: const Text('Página Inicial'),
         backgroundColor: const Color(0xFF081129),
-        actions: [
-          Padding(
-            padding: const EdgeInsetsGeometry.only(left: 14),
-            child: CircleAvatar(
-              radius: 25,
+        foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        titleSpacing: 16,
+
+        // Perfil
+        leadingWidth: 64,
+
+        leading: Center(
+          child: Transform.translate(
+            // Offset(horizontal, vertical)
+            offset: const Offset(7, 7),
+
+            child: const CircleAvatar(
+              radius: 20,
               backgroundImage: AssetImage('assets/images/personagem.png'),
             ),
           ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            //aqui tem numeros de pedidos
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                indicador(
-                  titulo: 'Pedidos',
-                  valor: 777,
-                  icone: Icons.handshake_rounded,
-                ),
-                Container(
-                  height: 50,
-                  padding: const EdgeInsets.symmetric(horizontal: 25),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE5EDF9),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  alignment: Alignment.center,
-                  child: const Text(
-                    //coloquei um numero ficticio
-                    '-14',
-                    style: TextStyle(
-                      fontSize: 25,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  indicador(
-                    titulo: 'Pagos',
-                    valor: pagos,
-                    icone: Icons.payments,
-                  ),
-
-                  indicador(
-                    titulo: 'Pendente',
-                    valor: pendentes,
-                    icone: Icons.currency_exchange,
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // PENDENTE
-          ],
         ),
       ),
 
-      bottomNavigationBar: const AppBottomBar(
-        selectedIndex: 0,
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              // Primeira linha: pedidos e saldo.
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: indicador(
+                      titulo: 'Pedidos',
+                      valor: pedidos,
+                      icone: Icons.handshake_rounded,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      height: 50,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE5EDF9),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: Text(
+                        '$saldo',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // Segunda linha: indicadores com a mesma largura.
+              Row(
+                children: [
+                  Expanded(
+                    child: indicador(
+                      titulo: 'Pagos',
+                      valor: pagos,
+                      icone: Icons.payments,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: indicador(
+                      titulo: 'Pendente',
+                      valor: pendentes,
+                      icone: Icons.currency_exchange,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
+
+      bottomNavigationBar: const AppBottomBar(selectedIndex: 0),
     );
   }
 }
-
-//catalago de itens
