@@ -1,12 +1,15 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class AppBottomBar extends StatelessWidget {
-  final int selectedIndex;
+final int selectedIndex;
+final VoidCallback? onSearchDoubleTap;
 
-  const AppBottomBar({
-    super.key,
-    required this.selectedIndex,
-  });
+const AppBottomBar({
+  super.key,
+  required this.selectedIndex,
+  this.onSearchDoubleTap,
+});
 
   void _navigate(BuildContext context, int index) {
     if (index == selectedIndex) return;
@@ -27,6 +30,8 @@ class AppBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(34);
+
     return SafeArea(
       top: false,
       minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -35,53 +40,57 @@ class AppBottomBar extends StatelessWidget {
         alignment: Alignment.bottomCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
-          child: Container(
-            height: 68,
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(34),
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF292929),
-                  Color(0xFF191919),
-                ],
+          child: ClipRRect(
+            borderRadius: radius,
+            child: BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: 18,
+                sigmaY: 18,
               ),
-              border: Border.all(
-                color: const Color(0xFF3A3A3A),
+              child: Container(
+                height: 68,
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  borderRadius: radius,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0x24FFFFFF),
+                      Color(0x0AFFFFFF),
+                    ],
+                  ),
+                  border: Border.all(
+                    color: const Color(0x26FFFFFF),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    _buildButton(
+                      context,
+                      index: 0,
+                      icon: selectedIndex == 0
+                          ? Icons.home_rounded
+                          : Icons.home_outlined,
+                      label: 'Início',
+                    ),
+                    const SizedBox(width: 4),
+                    _buildButton(
+                      context,
+                      index: 1,
+                      icon: Icons.search_rounded,
+                      label: 'Pesquisar',
+                    ),
+                    const SizedBox(width: 4),
+                    _buildButton(
+                      context,
+                      index: 2,
+                      icon: Icons.add_rounded,
+                      label: 'Adicionar',
+                    ),
+                  ],
+                ),
               ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x40000000),
-                  blurRadius: 18,
-                  offset: Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                _buildButton(
-                  context,
-                  index: 0,
-                  icon: selectedIndex == 0
-                      ? Icons.home_rounded
-                      : Icons.home_outlined,
-                  label: 'Início',
-                ),
-                _buildButton(
-                  context,
-                  index: 1,
-                  icon: Icons.search_rounded,
-                  label: 'Pesquisar',
-                ),
-                _buildButton(
-                  context,
-                  index: 2,
-                  icon: Icons.add_rounded,
-                  label: 'Adicionar',
-                ),
-              ],
             ),
           ),
         ),
@@ -113,24 +122,31 @@ class AppBottomBar extends StatelessWidget {
             child: Ink(
               decoration: BoxDecoration(
                 borderRadius: radius,
-                gradient: isSelected
-                    ? const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Color(0xFF4B4B4B),
-                          Color(0xFF363636),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isSelected
+                      ? const [
+                          Color(0x3DFFFFFF),
+                          Color(0x14FFFFFF),
+                        ]
+                      : const [
+                          Color(0x0FFFFFFF),
+                          Color(0x05FFFFFF),
                         ],
-                      )
-                    : null,
-                border: isSelected
-                    ? Border.all(color: const Color(0xFF595959))
-                    : null,
+                ),
+                border: Border.all(
+                  color: isSelected
+                      ? const Color(0x4DFFFFFF)
+                      : const Color(0x14FFFFFF),
+                ),
               ),
               child: InkWell(
+                borderRadius: radius,
                 onTap: () => _navigate(context, index),
-                splashColor: const Color(0x20FFFFFF),
-                highlightColor: const Color(0x10FFFFFF),
+                onDoubleTap: index == 1 ? onSearchDoubleTap : null,
+                splashColor: const Color(0x30FFFFFF),
+                highlightColor: const Color(0x14FFFFFF),
                 child: SizedBox(
                   height: double.infinity,
                   child: Padding(
@@ -138,12 +154,11 @@ class AppBottomBar extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        const SizedBox(width: 0),
                         Icon(
                           icon,
                           size: 25,
-                          color: isSelected
-                              ? Colors.white
-                              : const Color(0xFFE5E5E5),
+                          color: Colors.white,
                         ),
                         if (isSelected) ...[
                           const SizedBox(width: 8),
@@ -156,7 +171,6 @@ class AppBottomBar extends StatelessWidget {
                                 color: Colors.white,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                letterSpacing: 0.2,
                               ),
                             ),
                           ),

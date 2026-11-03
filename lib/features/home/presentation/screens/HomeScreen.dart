@@ -77,6 +77,7 @@ class HomeScreen extends StatelessWidget {
       ),
 
       body: SafeArea(
+        
         top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
