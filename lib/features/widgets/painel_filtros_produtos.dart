@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:crud_mobile_grafica/models/produto.dart';
+import 'package:crud_mobile_grafica/features/models/produto.dart';
 
 class PainelFiltrosProdutos extends StatelessWidget {
   final CategoriaProduto? selecionada;

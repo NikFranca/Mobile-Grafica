@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:crud_mobile_grafica/shared/widgets/app_bottom_bar.dart';
+import 'package:crud_mobile_grafica/features/widgets/app_bottom_bar.dart';
 
 class ProductRegisterScreen extends StatefulWidget {
   const ProductRegisterScreen({super.key});
@@ -308,9 +308,8 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
               ),
             ),
 
-            // ==========================================================
-            // BARRA INFERIOR
-            // ==========================================================
+
+            // O widget daBARRA INFERIOR
             bottomNavigationBar,
               
           ],

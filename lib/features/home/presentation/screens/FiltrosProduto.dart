@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-
-import 'package:crud_mobile_grafica/models/produto.dart';
-import 'package:crud_mobile_grafica/shared/widgets/app_bottom_bar.dart';
-import 'package:crud_mobile_grafica/products/data/produtos_exemplo.dart';
-import 'package:crud_mobile_grafica/products/presentation/widgets/painel_filtros_produtos.dart';
+import 'package:crud_mobile_grafica/features/models/produto.dart';
+import 'package:crud_mobile_grafica/features/widgets/app_bottom_bar.dart';
+import 'package:crud_mobile_grafica/features/data/produtos_exemplo.dart';
+import 'package:crud_mobile_grafica/features/widgets/painel_filtros_produtos.dart';
 
 class FiltrosProduto extends StatefulWidget {
   const FiltrosProduto({super.key});
@@ -96,7 +95,7 @@ class _FiltrosProdutoState extends State<FiltrosProduto> {
               selecionada: _categoriaSelecionada,
               onSelecionar: (categoria) {
                 setState(() {
-                  _categoriaSelecionada = categoria;
+                  _categoriaSelecionada = categoria as CategoriaProduto?;
                 });
               },
               onLimpar: () {
