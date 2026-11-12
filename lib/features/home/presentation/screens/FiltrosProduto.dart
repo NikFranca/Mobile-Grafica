@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:crud_mobile_grafica/features/models/produto.dart';
+import 'package:crud_mobile_grafica/features/products/models/produto.dart';
 import 'package:crud_mobile_grafica/features/widgets/app_bottom_bar.dart';
-import 'package:crud_mobile_grafica/features/data/produtos_exemplo.dart';
+import 'package:crud_mobile_grafica/features/products/data/produtos_exemplo.dart';
 import 'package:crud_mobile_grafica/features/widgets/painel_filtros_produtos.dart';
+import 'package:crud_mobile_grafica/features/products/data/produto_api.dart';
 
 class FiltrosProduto extends StatefulWidget {
   const FiltrosProduto({super.key});
@@ -14,6 +15,26 @@ class FiltrosProduto extends StatefulWidget {
 class _FiltrosProdutoState extends State<FiltrosProduto> {
   CategoriaProduto? _categoriaSelecionada;
   bool _painelAberto = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _testarApi();
+  }
+
+  Future<void> _testarApi() async {
+    try {
+      final produtos = await const ProdutoApi().listarProdutos();
+
+      debugPrint('API: ${produtos.length} produtos recebidos.');
+
+      if (produtos.isNotEmpty) {
+        debugPrint('Primeiro produto: ${produtos.first.nome}');
+      }
+    } catch (erro) {
+      debugPrint('Erro ao consultar API: $erro');
+    }
+  }
 
   void _alternarPainel() {
     setState(() {
@@ -29,10 +50,12 @@ class _FiltrosProdutoState extends State<FiltrosProduto> {
     }).toList();
 
     return Scaffold(
+      
       backgroundColor: const Color(0xFF081129),
       extendBody: true,
 
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFF081129),
         foregroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,

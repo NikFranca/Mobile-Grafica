@@ -69,8 +69,8 @@ class HomeScreen extends StatelessWidget {
             offset: const Offset(7, 7),
 
             child: const CircleAvatar(
-              radius: 20,
-              backgroundImage: AssetImage('assets/images/personagem.png'),
+              radius: 18,
+              child: Icon(Icons.person_outline),
             ),
           ),
         ),

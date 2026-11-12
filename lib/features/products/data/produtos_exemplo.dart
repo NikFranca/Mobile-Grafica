@@ -1,4 +1,4 @@
-import 'package:crud_mobile_grafica/features/models/produto.dart';
+import 'package:crud_mobile_grafica/features/products/models/produto.dart';
 
 // Dados de demonstração.
 const produtosExemplo = <Produto>[
