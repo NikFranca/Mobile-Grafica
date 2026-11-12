@@ -75,14 +75,5 @@ class Produto {
           : null,
     );
   }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'nome': nome,
-      'descricao': descricao,
-      'preco': preco,
-      'imagem': imagem,
-      'categoria': categoriaApi ?? categoria?.titulo,
-    };
-  }
 }
+
