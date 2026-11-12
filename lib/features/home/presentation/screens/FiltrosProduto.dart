@@ -1,197 +1,24 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:crud_mobile_grafica/features/products/models/produto.dart';
-import 'package:crud_mobile_grafica/features/widgets/app_bottom_bar.dart';
-import 'package:crud_mobile_grafica/features/products/data/produtos_exemplo.dart';
-import 'package:crud_mobile_grafica/features/widgets/painel_filtros_produtos.dart';
-import 'package:crud_mobile_grafica/features/products/data/produto_api.dart';
 
-class FiltrosProduto extends StatefulWidget {
-  const FiltrosProduto({super.key});
+class ProdutoApi {
+  const ProdutoApi();
 
-  @override
-  State<FiltrosProduto> createState() => _FiltrosProdutoState();
-}
+  // URL base ou endpoint direto da sua API no Render
+  static const String _url = 'https://crud-grafica-mobile-back.onrender.com/produtos';
 
-class _FiltrosProdutoState extends State<FiltrosProduto> {
-  CategoriaProduto? _categoriaSelecionada;
-  bool _painelAberto = false;
+  Future<List<Produto>> listarProdutos() async {
+    final response = await http.get(Uri.parse(_url));
 
-  @override
-  void initState() {
-    super.initState();
-    _testarApi();
-  }
-
-  Future<void> _testarApi() async {
-    try {
-      final produtos = await const ProdutoApi().listarProdutos();
-
-      debugPrint('API: ${produtos.length} produtos recebidos.');
-
-      if (produtos.isNotEmpty) {
-        debugPrint('Primeiro produto: ${produtos.first.nome}');
-      }
-    } catch (erro) {
-      debugPrint('Erro ao consultar API: $erro');
-    }
-  }
-
-  void _alternarPainel() {
-    setState(() {
-      _painelAberto = !_painelAberto;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final produtosFiltrados = produtosExemplo.where((produto) {
-      return _categoriaSelecionada == null ||
-          produto.categoria == _categoriaSelecionada;
-    }).toList();
-
-    return Scaffold(
+    if (response.statusCode == 200) {
+      // Decodifica o JSON retornado pela API
+      List<dynamic> body = jsonDecode(response.body);
       
-      backgroundColor: const Color(0xFF081129),
-      extendBody: true,
-
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: const Color(0xFF081129),
-        foregroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        title: Text(_categoriaSelecionada?.titulo ?? 'Produtos'),
-        actions: [
-          IconButton(
-            tooltip: _painelAberto ? 'Fechar filtros' : 'Abrir filtros',
-            onPressed: _alternarPainel,
-            icon: Icon(
-              _painelAberto ? Icons.close_rounded : Icons.tune_rounded,
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-
-      body: SafeArea(
-        top: false,
-        bottom: false,
-        child: Builder(
-          builder: (bodyContext) {
-            // Acompanha a altura real do painel e da barra inferior.
-            final espacoInferior =
-                MediaQuery.paddingOf(bodyContext).bottom + 16;
-
-            if (produtosFiltrados.isEmpty) {
-              return Padding(
-                padding: EdgeInsets.only(bottom: espacoInferior),
-                child: const Center(
-                  child: Text(
-                    'Nenhum produto nesta categoria.',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                ),
-              );
-            }
-
-            return GridView.builder(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, espacoInferior),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 220,
-                mainAxisExtent: 210,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-              ),
-              itemCount: produtosFiltrados.length,
-              itemBuilder: (context, index) {
-                return _cardProduto(produtosFiltrados[index]);
-              },
-            );
-          },
-        ),
-      ),
-
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (_painelAberto)
-            PainelFiltrosProdutos(
-              selecionada: _categoriaSelecionada,
-              onSelecionar: (categoria) {
-                setState(() {
-                  _categoriaSelecionada = categoria as CategoriaProduto?;
-                });
-              },
-              onLimpar: () {
-                setState(() {
-                  _categoriaSelecionada = null;
-                });
-              },
-            ),
-
-          AppBottomBar(selectedIndex: 1, onSearchDoubleTap: _alternarPainel),
-        ],
-      ),
-    );
-  }
-
-  Widget _cardProduto(Produto produto) {
-    final preco = produto.preco.toStringAsFixed(2).replaceAll('.', ',');
-
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 0,
-      color: const Color(0xFFE5EDF9),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: produto.imagem == null
-                  ? const Icon(
-                      Icons.inventory_2_outlined,
-                      size: 40,
-                      color: Color(0xFF64748B),
-                    )
-                  : Image.asset(
-                      produto.imagem!,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.image_not_supported_outlined,
-                          color: Color(0xFF64748B),
-                        );
-                      },
-                    ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              produto.nome,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFF081129),
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'R\$ $preco',
-                style: const TextStyle(
-                  color: Color(0xFF15803D),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+      // Converte cada item da lista JSON em um objeto Produto
+      return body.map((dynamic item) => Produto.fromJson(item)).toList();
+    } else {
+      throw Exception('Falha ao carregar produtos (Status: ${response.statusCode})');
+    }
   }
 }
