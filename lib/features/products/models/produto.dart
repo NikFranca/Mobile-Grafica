@@ -22,6 +22,7 @@ class Produto {
   final String descricao;
   final String? imagem;
   final Uint8List? imagemBytes;
+  final bool ativo;
 
   const Produto({
     this.id,
@@ -32,6 +33,7 @@ class Produto {
     this.descricao = '',
     this.imagem,
     this.imagemBytes,
+    this.ativo = true,
   });
 
   factory Produto.fromJson(Map<String, dynamic> json) {

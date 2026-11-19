@@ -4,6 +4,7 @@ import 'package:crud_mobile_grafica/features/products/models/produto.dart';
 import 'package:crud_mobile_grafica/features/products/data/produto_api.dart';
 import 'package:crud_mobile_grafica/features/widgets/app_bottom_bar.dart';
 import 'package:crud_mobile_grafica/features/widgets/painel_filtros_produtos.dart';
+import 'package:crud_mobile_grafica/features/products/presentation/screens/product_delete_update_screen.dart';
 
 class FiltrosProduto extends StatefulWidget {
   const FiltrosProduto({super.key});
@@ -28,6 +29,7 @@ class _FiltrosProdutoState extends State<FiltrosProduto> {
     _carregarProdutos();
   }
 
+  //metodo para carregar os produtos da API
   Future<void> _carregarProdutos() async {
     if (_carregando) return;
 
@@ -72,6 +74,34 @@ class _FiltrosProdutoState extends State<FiltrosProduto> {
     });
   }
 
+  //metodo para abrir a tela de edição/exclusão do produto
+  Future<void> _abrirProduto(Produto produto) async {
+    final resultado = await Navigator.push<ResultadoEdicaoProduto>(
+      context,
+      MaterialPageRoute<ResultadoEdicaoProduto>(
+        builder: (context) => ProductDeleteUpdateScreen(produto: produto),
+      ),
+    );
+
+    if (!mounted || resultado == null) return;
+
+    final idOriginal = produto.id;
+
+    final indice = idOriginal == null || idOriginal.trim().isEmpty
+        ? _produtos.indexOf(produto)
+        : _produtos.indexWhere((item) => item.id == idOriginal);
+
+    if (indice < 0) return;
+
+    setState(() {
+      if (resultado.foiExcluido) {
+        _produtos.removeAt(indice);
+      } else {
+        _produtos[indice] = resultado.produto!;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     // Filtra somente os produtos recebidos da API.
@@ -79,7 +109,7 @@ class _FiltrosProdutoState extends State<FiltrosProduto> {
       return _categoriaSelecionada == null ||
           produto.categoria == _categoriaSelecionada;
     }).toList();
-
+    //faz a tela de listagem de produtos com filtros e mensagens de erro ou carregamento
     return Scaffold(
       backgroundColor: const Color(0xFF081129),
       extendBody: true,
@@ -105,6 +135,7 @@ class _FiltrosProdutoState extends State<FiltrosProduto> {
           const SizedBox(width: 8),
         ],
       ),
+      //faz a tela de listagem de produtos com filtros e mensagens de erro ou carregamento
       body: SafeArea(
         top: false,
         bottom: false,
@@ -159,7 +190,12 @@ class _FiltrosProdutoState extends State<FiltrosProduto> {
               ),
               itemCount: produtosFiltrados.length,
               itemBuilder: (context, index) {
-                return _cardProduto(produtosFiltrados[index]);
+                final produto = produtosFiltrados[index];
+
+                return GestureDetector(
+                  onTap: () => _abrirProduto(produto),
+                  child: _cardProduto(produto),
+                );
               },
             );
           },
