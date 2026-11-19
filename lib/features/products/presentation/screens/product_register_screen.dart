@@ -363,11 +363,10 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
                     const SizedBox(height: 16),
 
                     // INTERRUPTOR ATIVO
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDCE8F5),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                    Material(
+                      color: const Color(0xFFDCE8F5),
+                      borderRadius: BorderRadius.circular(8),
+                      clipBehavior: Clip.antiAlias,
                       child: SwitchListTile(
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -380,12 +379,9 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        subtitle: Text(
-                          produtoAtivo ? 'Ativado' : 'Desativado',
-                          style: const TextStyle(color: Colors.black54),
-                        ),
-                        value: produtoAtivo,
+                        subtitle: Text(produtoAtivo ? 'Ativado' : 'Desativado'),
                         activeTrackColor: const Color(0xFF13C28A),
+                        value: produtoAtivo,
                         onChanged: (valor) {
                           setState(() {
                             produtoAtivo = valor;

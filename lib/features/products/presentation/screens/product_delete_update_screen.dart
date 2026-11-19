@@ -313,11 +313,10 @@ class _ProductDeleteUpdateScreenState extends State<ProductDeleteUpdateScreen> {
 
                     const SizedBox(height: 16),
 
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE5EDF9),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                    Material(
+                      color: const Color(0xFFE5EDF9),
+                      borderRadius: BorderRadius.circular(12),
+                      clipBehavior: Clip.antiAlias,
                       child: SwitchListTile(
                         title: const Text(
                           'Produto ativo',
