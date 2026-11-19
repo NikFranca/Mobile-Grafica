@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:crud_mobile_grafica/features/widgets/app_bottom_bar.dart';
+import 'package:crud_mobile_grafica/features/products/data/produto_api.dart';
+import 'package:crud_mobile_grafica/features/products/models/produto.dart';
 
 class ProductRegisterScreen extends StatefulWidget {
   const ProductRegisterScreen({super.key});
@@ -18,6 +20,69 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
   final nomeController = TextEditingController();
   final precoController = TextEditingController();
   final descricaoController = TextEditingController();
+  final categoriaController = TextEditingController();
+  final ProdutoApi _produtoApi = ProdutoApi();
+
+  bool _enviando = false;
+  bool produtoAtivo = true;
+
+  void _mostrarMensagem(String mensagem) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(mensagem)));
+  }
+
+  Future<void> _enviarProduto() async {
+    if (_enviando) return;
+
+    final nome = nomeController.text.trim();
+    final descricao = descricaoController.text.trim();
+    final categoria = categoriaController.text.trim();
+    final ativo = produtoAtivo;
+
+    final preco = double.tryParse(
+      precoController.text.trim().replaceAll(',', '.'),
+    );
+
+    if (nome.isEmpty || descricao.isEmpty || categoria.isEmpty) {
+      _mostrarMensagem('Preencha nome, descrição e categoria.');
+      return;
+    }
+
+    if (preco == null || !preco.isFinite || preco <= 0) {
+      _mostrarMensagem('Informe um preço maior que zero, como 25,90.');
+      return;
+    }
+
+    setState(() {
+      _enviando = true;
+    });
+
+    try {
+      await _produtoApi.cadastrarProduto(
+        nome: nome,
+        descricao: descricao,
+        preco: preco,
+        categoria: categoria,
+        ativo: ativo,
+      );
+
+      if (!mounted) return;
+
+      _mostrarMensagem('Produto cadastrado com sucesso!');
+    } catch (erro) {
+      if (!mounted) return;
+
+      debugPrint('Erro ao cadastrar produto: $erro');
+
+      _mostrarMensagem(erro.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _enviando = false;
+        });
+      }
+    }
+  }
 
   // ============================================================
   // IMAGEM
@@ -51,6 +116,7 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
     nomeController.dispose();
     precoController.dispose();
     descricaoController.dispose();
+    categoriaController.dispose();
 
     super.dispose();
   }
@@ -264,6 +330,73 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
                     const SizedBox(height: 22),
 
                     // ==================================================
+                    // CAMPO CATEGORIA
+                    // ==================================================
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      hint: const Text('Selecione uma categoria'),
+                      dropdownColor: const Color(0xFF8FA8E8),
+                      style: const TextStyle(color: Colors.black, fontSize: 16),
+                      icon: const Icon(
+                        Icons.expand_more_rounded,
+                        color: Color(0xFF081129),
+                      ),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFF8FA8E8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      items: CategoriaProduto.values.map((categoria) {
+                        return DropdownMenuItem<String>(
+                          value: categoria.titulo,
+                          child: Text(categoria.titulo),
+                        );
+                      }).toList(),
+                      onChanged: (valor) {
+                        categoriaController.text = valor ?? '';
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // INTERRUPTOR ATIVO
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDCE8F5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: const Text(
+                          'Produto ativo',
+                          style: TextStyle(
+                            color: Color(0xFF081129),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          produtoAtivo ? 'Ativado' : 'Desativado',
+                          style: const TextStyle(color: Colors.black54),
+                        ),
+                        value: produtoAtivo,
+                        activeTrackColor: const Color(0xFF13C28A),
+                        onChanged: (valor) {
+                          setState(() {
+                            produtoAtivo = valor;
+                          });
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(height: 22),
+
+                    // ==================================================
                     // BOTÃO ENVIAR
                     // ==================================================
                     SizedBox(
@@ -271,36 +404,29 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
                       height: 52,
 
                       child: ElevatedButton(
-                        onPressed: () {
-                          // Mostra os dados no terminal
-                          debugPrint('Nome: ${nomeController.text}');
-
-                          debugPrint('Preço: R\$ ${precoController.text}');
-
-                          debugPrint('Descrição: ${descricaoController.text}');
-
-                          // Verifica se existe uma imagem
-                          if (imagemSelecionada != null) {
-                            debugPrint('Imagem: ${imagemSelecionada!.name}');
-                          } else {
-                            debugPrint('Nenhuma imagem selecionada');
-                          }
-                        },
-
+                        onPressed: _enviando ? null : _enviarProduto,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF13C28A),
-
                           foregroundColor: Colors.white,
-
+                          disabledBackgroundColor: const Color(0xFF13C28A)
+                              .withValues(alpha: 0.6),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
                         ),
-
-                        child: const Text(
-                          'Enviar',
-                          style: TextStyle(fontSize: 16),
-                        ),
+                        child: _enviando
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Enviar',
+                                style: TextStyle(fontSize: 16),
+                              ),
                       ),
                     ),
                   ],
@@ -308,10 +434,8 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
               ),
             ),
 
-
             // O widget daBARRA INFERIOR
             bottomNavigationBar,
-              
           ],
         ),
       ),

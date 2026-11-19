@@ -88,9 +88,7 @@ class _FiltrosProdutoState extends State<FiltrosProduto> {
         backgroundColor: const Color(0xFF081129),
         foregroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
-        title: Text(
-          _categoriaSelecionada?.titulo ?? 'Produtos',
-        ),
+        title: Text(_categoriaSelecionada?.titulo ?? 'Produtos'),
         actions: [
           IconButton(
             tooltip: 'Atualizar produtos',
@@ -98,14 +96,10 @@ class _FiltrosProdutoState extends State<FiltrosProduto> {
             icon: const Icon(Icons.refresh_rounded),
           ),
           IconButton(
-            tooltip: _painelAberto
-                ? 'Fechar filtros'
-                : 'Abrir filtros',
+            tooltip: _painelAberto ? 'Fechar filtros' : 'Abrir filtros',
             onPressed: _alternarPainel,
             icon: Icon(
-              _painelAberto
-                  ? Icons.close_rounded
-                  : Icons.tune_rounded,
+              _painelAberto ? Icons.close_rounded : Icons.tune_rounded,
             ),
           ),
           const SizedBox(width: 8),
@@ -123,9 +117,7 @@ class _FiltrosProdutoState extends State<FiltrosProduto> {
               return Padding(
                 padding: EdgeInsets.only(bottom: espacoInferior),
                 child: const Center(
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                  ),
+                  child: CircularProgressIndicator(color: Colors.white),
                 ),
               );
             }
@@ -158,14 +150,8 @@ class _FiltrosProdutoState extends State<FiltrosProduto> {
             }
 
             return GridView.builder(
-              padding: EdgeInsets.fromLTRB(
-                16,
-                16,
-                16,
-                espacoInferior,
-              ),
-              gridDelegate:
-                  const SliverGridDelegateWithMaxCrossAxisExtent(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, espacoInferior),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 220,
                 mainAxisExtent: 210,
                 crossAxisSpacing: 12,
@@ -192,10 +178,7 @@ class _FiltrosProdutoState extends State<FiltrosProduto> {
               },
               onLimpar: _limparFiltro,
             ),
-          AppBottomBar(
-            selectedIndex: 1,
-            onSearchDoubleTap: _alternarPainel,
-          ),
+          AppBottomBar(selectedIndex: 1, onSearchDoubleTap: _alternarPainel),
         ],
       ),
     );
@@ -208,12 +191,7 @@ class _FiltrosProdutoState extends State<FiltrosProduto> {
     required VoidCallback onPressed,
   }) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        24,
-        16,
-        24,
-        espacoInferior,
-      ),
+      padding: EdgeInsets.fromLTRB(24, 16, 24, espacoInferior),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -221,16 +199,10 @@ class _FiltrosProdutoState extends State<FiltrosProduto> {
             Text(
               mensagem,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 16,
-              ),
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
             ),
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: onPressed,
-              child: Text(textoBotao),
-            ),
+            FilledButton(onPressed: onPressed, child: Text(textoBotao)),
           ],
         ),
       ),
@@ -238,25 +210,19 @@ class _FiltrosProdutoState extends State<FiltrosProduto> {
   }
 
   Widget _cardProduto(Produto produto) {
-    final preco = produto.preco
-        .toStringAsFixed(2)
-        .replaceAll('.', ',');
+    final preco = produto.preco.toStringAsFixed(2).replaceAll('.', ',');
 
     return Card(
       margin: EdgeInsets.zero,
       elevation: 0,
       color: const Color(0xFFE5EDF9),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: _imagemProduto(produto),
-            ),
+            Expanded(child: _imagemProduto(produto)),
             const SizedBox(height: 8),
             Text(
               produto.nome,
@@ -274,10 +240,7 @@ class _FiltrosProdutoState extends State<FiltrosProduto> {
                 produto.categoriaApi!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFF64748B),
-                  fontSize: 12,
-                ),
+                style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
               ),
             ],
             const SizedBox(height: 4),
