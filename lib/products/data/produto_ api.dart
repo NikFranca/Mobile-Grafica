@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import 'package:crud_mobile_grafica/features/products/models/produto.dart';
+import '../../features/products/models/produto.dart';
 
 class ProdutoApi {
   const ProdutoApi();
