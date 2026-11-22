@@ -59,60 +59,64 @@ class _CadastroScreenState extends State<CadastroScreen> {
   }
 
   Future<void> _fazerCadastro() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+    if (!_formKey.currentState!.validate()) return;
 
-      final String cpfLimpo =
-          _cpfController.text.replaceAll(RegExp(r'\D'), '');
-      final Uri url = Uri.parse('http://localhost:8081/api/admin/cadastrar');
+    setState(() {
+      _isLoading = true;
+    });
 
+    final String cpfLimpo = _cpfController.text.replaceAll(RegExp(r'\D'), '');
+    final Uri url = Uri.parse('http://localhost:8081/api/admin/cadastrar');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'nome': _nomeController.text.trim(),
+          'email': _emailController.text.trim(),
+          'cpf': cpfLimpo,
+          'senha': _passwordController.text,
+          'confirmarSenha': _confirmPasswordController.text,
+        }),
+      );
+
+      if (!mounted) return;
+
+      Map<String, dynamic>? decoded;
       try {
-        final response = await http.post(
-          url,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'nome': _nomeController.text.trim(),
-            'email': _emailController.text.trim(),
-            'cpf': cpfLimpo,
-            'senha': _passwordController.text,
-            'confirmarSenha': _confirmPasswordController.text,
-          }),
-        );
-
-        if (!mounted) return;
-
-        if (response.statusCode == 200 || response.statusCode == 201) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Conta criada com sucesso!')),
-          );
-          Navigator.pushReplacementNamed(context, '/login');
-        } else {
-          String mensagemErro = 'Erro ao criar conta. Verifique os dados.';
-          try {
-            final decoded = jsonDecode(response.body);
-            if (decoded is Map<String, dynamic> &&
-                decoded['mensagem'] != null) {
-              mensagemErro = decoded['mensagem'].toString();
-            }
-          } catch (_) {}
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(mensagemErro)),
-          );
+        final parsed = jsonDecode(response.body);
+        if (parsed is Map<String, dynamic>) {
+          decoded = parsed;
         }
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Não foi possível conectar ao servidor.')),
-        );
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
+      } catch (_) {}
+
+      final bool cadastrouComSucesso =
+          (response.statusCode == 200 || response.statusCode == 201) &&
+              (decoded?['sucesso'] != false);
+
+      if (cadastrouComSucesso) {
+        Navigator.pushReplacementNamed(context, '/login');
+        return;
+      }
+
+      final String mensagemErro =
+          decoded?['mensagem']?.toString() ??
+              'Erro ao criar conta. Verifique os dados.';
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(mensagemErro)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível conectar ao servidor.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -199,8 +203,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
                           controller: _cpfController,
                           keyboardType: TextInputType.number,
                           inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(11),
                             _CpfInputFormatter(),
                           ],
                           decoration:

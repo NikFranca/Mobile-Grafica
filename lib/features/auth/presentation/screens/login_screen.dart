@@ -1,6 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
+
 import '../../../../main.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -30,9 +32,9 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       final String email = _emailController.text.trim();
-      final String password = _passwordController.text.trim();
+      final String senha = _passwordController.text;
 
-      final Uri url = Uri.parse('http://localhost:5000/api/usuarios/login');
+      final Uri url = Uri.parse('http://localhost:8081/api/admin/login');
 
       try {
         final response = await http.post(
@@ -40,24 +42,43 @@ class _LoginScreenState extends State<LoginScreen> {
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
             'email': email,
-            'password': password,
+            'senha': senha,
           }),
         );
 
         if (!mounted) return;
 
-        if (response.statusCode == 200 || response.statusCode == 201) {
+        Map<String, dynamic>? decoded;
+        try {
+          final parsed = jsonDecode(response.body);
+          if (parsed is Map<String, dynamic>) {
+            decoded = parsed;
+          }
+        } catch (_) {}
+
+        final bool sucessoApi = decoded?['sucesso'] is bool
+            ? decoded!['sucesso'] as bool
+            : (response.statusCode == 200 || response.statusCode == 201);
+
+        if ((response.statusCode == 200 || response.statusCode == 201) &&
+            sucessoApi) {
           AuthSession.isAuthenticated = true;
 
+          final String mensagemSucesso =
+              decoded?['mensagem']?.toString() ?? 'Login realizado com sucesso!';
+
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Login realizado com sucesso!')),
+            SnackBar(content: Text(mensagemSucesso)),
           );
 
           Navigator.pushReplacementNamed(context, '/home');
         } else {
           AuthSession.isAuthenticated = false;
+          final String mensagemErro =
+              decoded?['mensagem']?.toString() ?? 'E-mail ou senha inválidos.';
+
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('E-mail ou senha inválidos.')),
+            SnackBar(content: Text(mensagemErro)),
           );
         }
       } catch (e) {
@@ -125,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
+                            if (value == null || value.trim().isEmpty) {
                               return 'Por favor, digite seu e-mail';
                             }
                             return null;
@@ -194,7 +215,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ? const SizedBox(
                                       width: 20,
                                       height: 20,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2),
                                     )
                                   : const Text(
                                       'Sign In',
