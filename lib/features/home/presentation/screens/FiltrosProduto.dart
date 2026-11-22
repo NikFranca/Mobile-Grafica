@@ -121,11 +121,6 @@ class _FiltrosProdutoState extends State<FiltrosProduto> {
         title: Text(_categoriaSelecionada?.titulo ?? 'Produtos'),
         actions: [
           IconButton(
-            tooltip: 'Atualizar produtos',
-            onPressed: _carregando ? null : _carregarProdutos,
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-          IconButton(
             tooltip: _painelAberto ? 'Fechar filtros' : 'Abrir filtros',
             onPressed: _alternarPainel,
             icon: Icon(
@@ -147,7 +142,7 @@ class _FiltrosProdutoState extends State<FiltrosProduto> {
             if (_carregando) {
               return Padding(
                 padding: EdgeInsets.only(bottom: espacoInferior),
-                child: const Center(
+                child: Center(
                   child: CircularProgressIndicator(color: Colors.white),
                 ),
               );

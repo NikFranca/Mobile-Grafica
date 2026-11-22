@@ -143,30 +143,6 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
 
                 child: Column(
                   children: [
-                    // ==================================================
-                    // LOGO
-                    // ==================================================
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          width: 45,
-                          height: 45,
-
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-
-                          child: const Icon(
-                            Icons.water_drop,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-
                     const SizedBox(height: 30),
 
                     // ==================================================

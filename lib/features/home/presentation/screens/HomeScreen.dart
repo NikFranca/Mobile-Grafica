@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-
+import 'package:shimmer/shimmer.dart';
 import 'package:crud_mobile_grafica/features/home/data/pedido_api.dart';
 import 'package:crud_mobile_grafica/features/widgets/app_bottom_bar.dart';
+import 'package:fl_chart/fl_chart.dart'; //grafico
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -47,10 +48,59 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         _carregando = false;
-        _erro = 'Não foi possível carregar os números. '
+        _erro =
+            'Não foi possível carregar os números. '
             'Tente novamente.';
       });
     }
+  }
+
+  Widget _buildGraficoResumo(int pagos, int pendentes, int cancelados) {
+    return Container(
+      height: 250,
+      padding: const EdgeInsets.all(16),
+      child: PieChart(
+        PieChartData(
+          sectionsSpace: 4, // Espaço entre as fatias
+          centerSpaceRadius: 50, // Tamanho do buraco no meio (anel)
+          sections: [
+            PieChartSectionData(
+              color: Colors.green, // Pagos
+              value: pagos.toDouble(),
+              title: '$pagos',
+              radius: 40,
+              titleStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            PieChartSectionData(
+              color: Colors.orange, // Pendentes
+              value: pendentes.toDouble(),
+              title: '$pendentes',
+              radius: 40,
+              titleStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            PieChartSectionData(
+              color: Colors.red, // Cancelados
+              value: cancelados.toDouble(),
+              title: '$cancelados',
+              radius: 40,
+              titleStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget indicador({
@@ -83,11 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(
-                icone,
-                size: 24,
-                color: corValor,
-              ),
+              Icon(icone, size: 24, color: corValor),
             ],
           ),
           const SizedBox(height: 12),
@@ -112,11 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _conteudo() {
     if (_carregando) {
-      return const Center(
-        child: CircularProgressIndicator(
-          color: Colors.white,
-        ),
-      );
+      return Center(child: _buildListaProdutosSkeleton());
     }
 
     if (_erro != null) {
@@ -129,10 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 _erro!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 16,
-                ),
+                style: const TextStyle(color: Colors.white70, fontSize: 16),
               ),
               const SizedBox(height: 16),
               FilledButton(
@@ -200,8 +239,49 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 24),
+          const Text(
+            'Distribuição de Pedidos',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          _buildGraficoResumo(
+            resumo.pagos,
+            resumo.pendentes,
+            resumo.cancelados,
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildListaProdutosSkeleton() {
+    return ListView.builder(
+      itemCount: 6, // Quantidade de esqueletos simulados na tela
+      itemBuilder: (context, index) {
+        return Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: ListTile(
+              // Quadrado simulando a imagem do produto
+              leading: Container(width: 50, height: 50, color: Colors.white),
+              // Linha simulando o nome do produto
+              title: Container(height: 16, color: Colors.white),
+              // Linha mais curta simulando o preço ou descrição
+              subtitle: Container(
+                height: 12,
+                margin: const EdgeInsets.only(top: 8, right: 100),
+                color: Colors.white,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -217,12 +297,9 @@ class _HomeScreenState extends State<HomeScreen> {
         titleSpacing: 16,
         leadingWidth: 64,
         leading: Center(
-          child: Transform.translate(
-            offset: const Offset(7, 7),
-            child: const CircleAvatar(
-              radius: 18,
-              child: Icon(Icons.person_outline),
-            ),
+          child: const CircleAvatar(
+            radius: 18,
+            child: Icon(Icons.person_outline),
           ),
         ),
         actions: [
@@ -234,13 +311,9 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: SafeArea(
-        top: false,
-        child: _conteudo(),
-      ),
-      bottomNavigationBar: const AppBottomBar(
-        selectedIndex: 0,
-      ),
+      body: SafeArea(top: false, child: _conteudo()),
+      bottomNavigationBar: const AppBottomBar(selectedIndex: 0),
     );
   }
 }
+
