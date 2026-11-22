@@ -14,7 +14,7 @@ class ProdutoApi {
     try {
       // Endereço que retorna os produtos.
       final url = Uri.parse(
-        'https://crud-grafica-mobile-back.onrender.com/produtos',
+        'http://localhost:8081/api/produtos',
       );
 
       // Faz a consulta ao servidor.
