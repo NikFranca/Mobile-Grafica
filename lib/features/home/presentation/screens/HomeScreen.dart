@@ -4,6 +4,8 @@ import 'package:crud_mobile_grafica/features/home/data/pedido_api.dart';
 import 'package:crud_mobile_grafica/features/widgets/app_bottom_bar.dart';
 import 'package:fl_chart/fl_chart.dart'; //grafico
 
+import 'package:crud_mobile_grafica/features/widgets/botao_perfil.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -296,12 +298,7 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 0,
         titleSpacing: 16,
         leadingWidth: 64,
-        leading: Center(
-          child: const CircleAvatar(
-            radius: 18,
-            child: Icon(Icons.person_outline),
-          ),
-        ),
+        leading: const BotaoPerfil(),
         actions: [
           IconButton(
             tooltip: 'Atualizar números',
@@ -316,4 +313,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-

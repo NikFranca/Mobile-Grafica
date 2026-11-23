@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:crud_mobile_grafica/features/auth/data/sessao_app.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -26,6 +28,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _mostrarMensagem(String mensagem) {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(mensagem)),
     );
@@ -40,7 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     final client = http.Client();
-    var autenticado = false;
+    bool autenticado = false;
 
     try {
       final resposta = await client
@@ -63,19 +67,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
       debugPrint('Login: HTTP ${resposta.statusCode}');
 
-      final recebido = jsonDecode(
+      final Object? recebido = jsonDecode(
         utf8.decode(resposta.bodyBytes),
       );
 
       if (recebido is! Map<String, dynamic>) {
-        throw const FormatException(
-          'Resposta inválida do servidor.',
+        _mostrarMensagem(
+          'O servidor retornou uma resposta inválida.',
         );
+        return;
       }
 
-      final dados = recebido;
+      // A resposta convertida fica disponível neste bloco.
+      final Map<String, dynamic> dados = recebido;
 
-      if (resposta.statusCode != 200) {
+      if (resposta.statusCode != 200 ||
+          dados['sucesso'] != true) {
         final mensagem = dados['mensagem'] ??
             dados['erro'] ??
             dados['error'];
@@ -86,33 +93,34 @@ class _LoginScreenState extends State<LoginScreen> {
               : 'Não foi possível realizar o login. '
                   'HTTP ${resposta.statusCode}.',
         );
-
         return;
       }
 
-      if (dados['sucesso'] != true) {
+      final usuario = dados['usuario'];
+
+      if (usuario is! Map<String, dynamic>) {
         _mostrarMensagem(
-          'O servidor não confirmou o login.',
+          'O servidor não retornou os dados do cadastro.',
         );
         return;
       }
 
+      SessaoApp.carregarUsuario(usuario);
+
+      SessaoApp.token = dados['token'] is String
+          ? dados['token'] as String
+          : null;
+
       autenticado = true;
     } on TimeoutException {
-      if (!mounted) return;
-
       _mostrarMensagem(
         'O servidor demorou para responder. Tente novamente.',
       );
     } on FormatException {
-      if (!mounted) return;
-
       _mostrarMensagem(
         'O servidor retornou uma resposta inválida.',
       );
     } catch (erro) {
-      if (!mounted) return;
-
       debugPrint('Erro ao fazer login: $erro');
 
       _mostrarMensagem(
@@ -166,127 +174,124 @@ class _LoginScreenState extends State<LoginScreen> {
             padding: const EdgeInsets.symmetric(
               horizontal: 24,
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD6E2FE)
-                        .withValues(alpha: 0.85),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.cyan.withValues(
-                          alpha: 0.3,
-                        ),
-                        blurRadius: 20,
-                        spreadRadius: 2,
-                      ),
-                    ],
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD6E2FE)
+                    .withValues(alpha: 0.85),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.cyan.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    spreadRadius: 2,
                   ),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.stretch,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType:
-                              TextInputType.emailAddress,
-                          decoration: _decoracao('Gmail:'),
-                          validator: (value) {
-                            if (value == null ||
-                                value.trim().isEmpty) {
-                              return 'Por favor, digite seu e-mail';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _passwordController,
-                          obscureText: true,
-                          decoration: _decoracao('Password:'),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Por favor, digite sua senha';
-                            }
+                ],
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: _emailController,
+                      enabled: !_isLoading,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: _decoracao('Gmail:'),
+                      validator: (value) {
+                        if (value == null ||
+                            value.trim().isEmpty) {
+                          return 'Por favor, digite seu e-mail';
+                        }
 
-                            if (value.length < 6) {
-                              return 'A senha deve ter pelo menos 6 caracteres';
-                            }
-
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.center,
-                          child: TextButton(
-                            onPressed: () {
-                              Navigator.pushNamed(
-                                context,
-                                '/cadastro',
-                              );
-                            },
-                            child: const Text(
-                              'Create account',
-                              style: TextStyle(
-                                color: Colors.blue,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Center(
-                          child: SizedBox(
-                            width: 140,
-                            child: ElevatedButton(
-                              onPressed:
-                                  _isLoading ? null : _fazerLogin,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    const Color(0xFFD0D7E2),
-                                foregroundColor: Colors.black87,
-                                elevation: 4,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(20),
-                                ),
-                                padding:
-                                    const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                              ),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child:
-                                          CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Text(
-                                      'Sign In',
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight:
-                                            FontWeight.bold,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        ),
-                      ],
+                        return null;
+                      },
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _passwordController,
+                      enabled: !_isLoading,
+                      obscureText: true,
+                      decoration: _decoracao('Password:'),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Por favor, digite sua senha';
+                        }
+
+                        if (value.length < 6) {
+                          return 'A senha deve ter pelo menos 6 caracteres';
+                        }
+
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.center,
+                      child: TextButton(
+                        onPressed: _isLoading
+                            ? null
+                            : () {
+                                Navigator.pushNamed(
+                                  context,
+                                  '/cadastro',
+                                );
+                              },
+                        child: const Text(
+                          'Create account',
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Center(
+                      child: SizedBox(
+                        width: 140,
+                        child: ElevatedButton(
+                          onPressed:
+                              _isLoading ? null : _fazerLogin,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                const Color(0xFFD0D7E2),
+                            foregroundColor: Colors.black87,
+                            elevation: 4,
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(20),
+                            ),
+                            padding:
+                                const EdgeInsets.symmetric(
+                              vertical: 12,
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child:
+                                      CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'Sign In',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight:
+                                        FontWeight.bold,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
