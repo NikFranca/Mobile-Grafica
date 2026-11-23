@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/auth/presentation/screens/cadastro_screen.dart';
 import 'features/home/presentation/screens/HomeScreen.dart';
@@ -23,11 +24,19 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
 
-      // Define a Home como tela inicial e fornece a rota "/".
-      home: const HomeScreen(),
+      initialRoute: '/login',
+
+      onGenerateInitialRoutes: (_) => [
+        MaterialPageRoute<void>(
+          settings: const RouteSettings(name: '/login'),
+          builder: (_) => const LoginScreen(),
+        ),
+      ],
 
       routes: {
+        '/': (context) => const HomeScreen(),
         '/login': (context) => const LoginScreen(),
+        '/cadastro': (context) => const CadastroScreen(),
         '/register': (context) => const CadastroScreen(),
         '/filtros': (context) => const FiltrosProduto(),
         '/addProduto': (context) => const ProductRegisterScreen(),

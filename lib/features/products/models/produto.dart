@@ -49,13 +49,10 @@ class Produto {
         preco == null ||
         !preco.isFinite ||
         preco < 0) {
-      throw const FormatException(
-        'Produto com nome ou preço inválido.',
-      );
+      throw const FormatException('Produto com nome ou preço inválido.');
     }
 
     final categoriaApi = json['categoria']?.toString().trim();
-
     CategoriaProduto? categoria;
 
     for (final opcao in CategoriaProduto.values) {
@@ -65,6 +62,20 @@ class Produto {
       }
     }
 
+    final imagemInformada = json.containsKey('imagem')
+        ? json['imagem']
+        : json['imagemUrl'] ?? json['imagem_url'];
+
+    if (imagemInformada != null && imagemInformada is! String) {
+      throw const FormatException('URL de imagem inválida.');
+    }
+
+    final ativo = json['ativo'];
+
+    if (ativo != null && ativo is! bool) {
+      throw const FormatException('Status do produto inválido.');
+    }
+
     return Produto(
       id: json['id']?.toString(),
       nome: nome.trim(),
@@ -72,10 +83,19 @@ class Produto {
       categoria: categoria,
       categoriaApi: categoriaApi,
       descricao: json['descricao']?.toString() ?? '',
-      imagem: json['imagem'] is String
-          ? json['imagem'] as String
-          : null,
+      imagem: imagemInformada is String ? imagemInformada.trim() : null,
+      ativo: ativo as bool? ?? true,
     );
   }
-}
 
+  Map<String, dynamic> toJson() {
+    return {
+      'nome': nome,
+      'descricao': descricao,
+      'preco': preco,
+      'imagem': imagem,
+      'categoria': categoria?.titulo ?? categoriaApi,
+      'ativo': ativo,
+    };
+  }
+}
