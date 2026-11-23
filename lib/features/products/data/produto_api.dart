@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:crud_mobile_grafica/features/auth/data/sessao_app.dart';
 import 'package:http/http.dart' as http;
 import 'package:crud_mobile_grafica/features/products/models/produto.dart';
 
@@ -35,22 +36,34 @@ class ProdutoApi {
     final client = http.Client();
 
     try {
-      final request = http.Request(
-        metodo,
-        Uri.parse('$_baseUrl$caminho'),
-      );
+      final request = http.Request(metodo, Uri.parse('$_baseUrl$caminho'));
 
-      request.headers['Accept'] = 'application/json';
+      if (const {
+        'POST',
+        'PUT',
+        'PATCH',
+        'DELETE',
+      }.contains(metodo.toUpperCase())) {
+        final token = SessaoApp.token;
+
+        if (token == null || token.isEmpty) {
+          throw const ProdutoApiException(
+            'Faça login novamente para continuar.',
+          );
+        }
+
+        request.headers['Authorization'] = 'Bearer $token';
+      }
 
       if (dados != null) {
-        request.headers['Content-Type'] =
-            'application/json; charset=utf-8';
+        request.headers['Content-Type'] = 'application/json; charset=utf-8';
         request.body = jsonEncode(dados);
       }
 
-      final resposta = await _receber(client, request).timeout(
-        const Duration(seconds: 90),
-      );
+      final resposta = await _receber(
+        client,
+        request,
+      ).timeout(const Duration(seconds: 90));
 
       final sucessoHttp =
           resposta.statusCode >= 200 && resposta.statusCode < 300;
@@ -70,14 +83,15 @@ class ProdutoApi {
         }
       }
 
-      final recusado = recebido is Map<String, dynamic> &&
-          recebido['sucesso'] == false;
+      final recusado =
+          recebido is Map<String, dynamic> && recebido['sucesso'] == false;
 
       if (!sucessoHttp || recusado) {
         var mensagem = 'Não foi possível concluir a operação.';
 
         if (recebido is Map<String, dynamic>) {
-          final detalhe = recebido['mensagem'] ??
+          final detalhe =
+              recebido['mensagem'] ??
               recebido['erro'] ??
               recebido['message'] ??
               recebido['error'];
@@ -87,9 +101,7 @@ class ProdutoApi {
           }
         }
 
-        throw ProdutoApiException(
-          '$mensagem (HTTP ${resposta.statusCode})',
-        );
+        throw ProdutoApiException('$mensagem (HTTP ${resposta.statusCode})');
       }
 
       return recebido;
@@ -98,12 +110,10 @@ class ProdutoApi {
         metodo == 'GET'
             ? 'O servidor demorou para responder. Tente novamente.'
             : 'O servidor demorou para confirmar. '
-                'Atualize a lista antes de repetir a operação.',
+                  'Atualize a lista antes de repetir a operação.',
       );
     } on http.ClientException {
-      throw const ProdutoApiException(
-        'Não foi possível conectar ao servidor.',
-      );
+      throw const ProdutoApiException('Não foi possível conectar ao servidor.');
     } finally {
       client.close();
     }
@@ -115,9 +125,7 @@ class ProdutoApi {
     }
 
     if (!preco.isFinite || preco <= 0) {
-      throw const ProdutoApiException(
-        'Informe um preço maior que zero.',
-      );
+      throw const ProdutoApiException('Informe um preço maior que zero.');
     }
 
     if (categoria.trim().isEmpty) {
@@ -126,8 +134,7 @@ class ProdutoApi {
   }
 
   Produto _produtoDaResposta(dynamic dados) {
-    final recebido =
-        dados is Map<String, dynamic> ? dados['produto'] : null;
+    final recebido = dados is Map<String, dynamic> ? dados['produto'] : null;
 
     if (recebido is! Map<String, dynamic>) {
       throw const ProdutoApiException(
@@ -140,9 +147,7 @@ class ProdutoApi {
     final id = produto.id;
 
     if (id == null || id.trim().isEmpty) {
-      throw const ProdutoApiException(
-        'A API retornou um produto sem ID.',
-      );
+      throw const ProdutoApiException('A API retornou um produto sem ID.');
     }
 
     return produto;
@@ -150,9 +155,7 @@ class ProdutoApi {
 
   String _idValido(String? id) {
     if (id == null || id.trim().isEmpty) {
-      throw const ProdutoApiException(
-        'Este produto não possui um ID válido.',
-      );
+      throw const ProdutoApiException('Este produto não possui um ID válido.');
     }
 
     return Uri.encodeComponent(id.trim());
@@ -185,18 +188,13 @@ class ProdutoApi {
     }
 
     if (bytes.length > limiteImagemBytes) {
-      throw const ProdutoApiException(
-        'Selecione uma imagem de até 5 MB.',
-      );
+      throw const ProdutoApiException('Selecione uma imagem de até 5 MB.');
     }
 
     final dados = await _requisicao(
       'POST',
       '/api/produtos/imagem',
-      dados: {
-        'nomeArquivo': nomeArquivo,
-        'imagemBase64': base64Encode(bytes),
-      },
+      dados: {'nomeArquivo': nomeArquivo, 'imagemBase64': base64Encode(bytes)},
     );
 
     final imagem = dados is Map<String, dynamic> ? dados['imagem'] : null;
@@ -257,9 +255,6 @@ class ProdutoApi {
   Future<void> excluirProduto(String? produtoId) async {
     final id = _idValido(produtoId);
 
-    await _requisicao(
-      'DELETE',
-      '/api/produtos/$id',
-    );
+    await _requisicao('DELETE', '/api/produtos/$id');
   }
 }

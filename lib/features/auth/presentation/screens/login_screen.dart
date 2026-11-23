@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:crud_mobile_grafica/features/auth/data/sessao_app.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -26,9 +27,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _mostrarMensagem(String mensagem) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(mensagem)),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(mensagem)));
   }
 
   Future<void> _fazerLogin() async {
@@ -55,10 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
               'Content-Type': 'application/json; charset=utf-8',
               'Accept': 'application/json',
             },
-            body: jsonEncode({
-              'email': email,
-              'senha': senha,
-            }),
+            body: jsonEncode({'email': email, 'senha': senha}),
           )
           .timeout(const Duration(seconds: 90));
 
@@ -69,9 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
       Map<String, dynamic> dados = {};
 
       try {
-        final recebido = jsonDecode(
-          utf8.decode(resposta.bodyBytes),
-        );
+        final recebido = jsonDecode(utf8.decode(resposta.bodyBytes));
 
         if (recebido is Map<String, dynamic>) {
           dados = recebido;
@@ -87,33 +82,41 @@ class _LoginScreenState extends State<LoginScreen> {
           mensagem is String && mensagem.trim().isNotEmpty
               ? mensagem
               : resposta.statusCode == 401
-                  ? 'E-mail ou senha inválidos.'
-                  : 'Não foi possível concluir o login.',
+              ? 'E-mail ou senha inválidos.'
+              : 'Não foi possível concluir o login.',
         );
         return;
       }
 
       if (dados['sucesso'] != true) {
-        _mostrarMensagem(
-          'O servidor não confirmou o login.',
+        _mostrarMensagem('O servidor não confirmou o login.');
+        return;
+      }
+
+      final token = dados['token'];
+
+      if (token is! String || token.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'O servidor não enviou a sessão. Verifique o backend.',
+            ),
+          ),
         );
         return;
       }
 
+      SessaoApp.token = token;
       autenticado = true;
     } on TimeoutException {
       if (mounted) {
-        _mostrarMensagem(
-          'O servidor demorou para responder. Tente novamente.',
-        );
+        _mostrarMensagem('O servidor demorou para responder. Tente novamente.');
       }
     } catch (erro) {
       debugPrint('Erro no login: $erro');
 
       if (mounted) {
-        _mostrarMensagem(
-          'Não foi possível conectar ao servidor.',
-        );
+        _mostrarMensagem('Não foi possível conectar ao servidor.');
       }
     } finally {
       client.close();
@@ -128,11 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted || !autenticado) return;
 
     // A Home está registrada na rota "/".
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      '/',
-      (route) => false,
-    );
+    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
 
   InputDecoration _decoracao(String titulo) {
@@ -145,10 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
       ),
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 14,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
 
@@ -159,10 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 24,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -223,17 +216,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: _isLoading
                             ? null
                             : () {
-                                Navigator.pushNamed(
-                                  context,
-                                  '/cadastro',
-                                );
+                                Navigator.pushNamed(context, '/cadastro');
                               },
                         child: const Text(
                           'Criar conta',
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontSize: 14,
-                          ),
+                          style: TextStyle(color: Colors.blue, fontSize: 14),
                         ),
                       ),
                     ),
@@ -252,9 +239,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 12,
-                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           child: _isLoading
                               ? const SizedBox(
