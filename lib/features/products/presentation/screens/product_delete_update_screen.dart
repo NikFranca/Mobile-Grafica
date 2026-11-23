@@ -43,7 +43,7 @@ class _ProductDeleteUpdateScreenState extends State<ProductDeleteUpdateScreen> {
   bool _ativo = true;
   bool _salvando = false;
   bool _fotoAlterada = false;
-
+  String? _imagemUrlEnviada;
   @override
   void initState() {
     super.initState();
@@ -107,6 +107,7 @@ class _ProductDeleteUpdateScreenState extends State<ProductDeleteUpdateScreen> {
       setState(() {
         _imagemBytes = bytes;
         _fotoAlterada = true;
+        _imagemUrlEnviada = null;
       });
     } catch (_) {
       if (!mounted) return;
@@ -122,7 +123,8 @@ class _ProductDeleteUpdateScreenState extends State<ProductDeleteUpdateScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final categoria = _categoriaSelecionada!;
-    final fotoFoiTrocada = _fotoAlterada;
+    final bytes = _imagemBytes;
+    final enviarFoto = _fotoAlterada;
 
     final atualizado = Produto(
       id: widget.produto.id,
@@ -140,24 +142,29 @@ class _ProductDeleteUpdateScreenState extends State<ProductDeleteUpdateScreen> {
     });
 
     try {
-      final salvo = await _produtoApi.atualizarProduto(atualizado);
+      String? novaImagemUrl;
+
+      if (enviarFoto) {
+        novaImagemUrl = _imagemUrlEnviada;
+
+        if (novaImagemUrl == null) {
+          if (bytes == null || bytes.isEmpty) {
+            throw Exception('Selecione novamente a foto do produto.');
+          }
+
+          novaImagemUrl = await _produtoApi.enviarImagem(bytes);
+          _imagemUrlEnviada = novaImagemUrl;
+        }
+      }
+
+      final salvo = await _produtoApi.atualizarProduto(
+        atualizado,
+        novaImagemUrl: novaImagemUrl,
+      );
 
       if (!mounted) return;
 
-      final mensageiro = ScaffoldMessenger.of(context);
-
       Navigator.pop(context, ResultadoEdicaoProduto.salvo(salvo));
-
-      if (fotoFoiTrocada) {
-        mensageiro.showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Dados salvos. A foto não foi alterada; '
-              'o envio de imagens ainda não está disponível.',
-            ),
-          ),
-        );
-      }
     } catch (erro) {
       if (!mounted) return;
 
@@ -180,70 +187,33 @@ class _ProductDeleteUpdateScreenState extends State<ProductDeleteUpdateScreen> {
   Future<void> _deletar() async {
     if (_salvando) return;
 
-    final id = widget.produto.id?.trim();
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Deletar produto?'),
+          content: Text('Deseja deletar "${widget.produto.nome}"?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              child: const Text('Deletar'),
+            ),
+          ],
+        );
+      },
+    );
 
-    if (id == null || id.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Este produto não possui um ID válido para exclusão.'),
-        ),
-      );
-      return;
-    }
+    if (!mounted || confirmou != true || _salvando) return;
 
-    setState(() {
-      _salvando = true;
-    });
-
-    try {
-      final confirmou = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) {
-          return AlertDialog(
-            title: const Text('Deletar produto?'),
-            content: Text('Deseja deletar "${widget.produto.nome}"?'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(dialogContext, false);
-                },
-                child: const Text('Cancelar'),
-              ),
-              FilledButton(
-                onPressed: () {
-                  Navigator.pop(dialogContext, true);
-                },
-                child: const Text('Deletar'),
-              ),
-            ],
-          );
-        },
-      );
-
-      if (!mounted || confirmou != true) return;
-
-      await _produtoApi.excluirProduto(id);
-
-      if (!mounted) return;
-
-      Navigator.pop(context, const ResultadoEdicaoProduto.excluido());
-    } catch (erro) {
-      if (!mounted) return;
-
-      debugPrint('Erro ao excluir produto: $erro');
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(erro.toString().replaceFirst('Exception: ', '')),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _salvando = false;
-        });
-      }
-    }
+    Navigator.pop(context, const ResultadoEdicaoProduto.excluido());
   }
 
   InputDecoration _decoracao(String titulo) {

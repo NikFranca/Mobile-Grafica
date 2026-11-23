@@ -1,114 +1,186 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
+import 'package:crud_mobile_grafica/features/auth/data/sessao_app.dart';
 import 'package:crud_mobile_grafica/features/products/models/produto.dart';
 
 class ProdutoApi {
-  Future<void> excluirProduto(String id) async {
-    final produtoId = id.trim();
+  const ProdutoApi();
 
-    if (produtoId.isEmpty) {
-      throw Exception('O produto não possui um ID válido.');
-    }
+  static const String _baseUrl = 'http://localhost:8081';
+  static const int limiteImagemBytes = 5 * 1024 * 1024;
 
+  Future<http.Response> _receber(
+    http.Client client,
+    http.Request request,
+  ) async {
+    final resposta = await client.send(request);
+    return http.Response.fromStream(resposta);
+  }
+
+  Future<dynamic> _requisicao(
+    String metodo,
+    String caminho, {
+    Map<String, dynamic>? dados,
+    bool requerLogin = false,
+  }) async {
     final client = http.Client();
 
     try {
-      final resposta = await client
-          .delete(
-            Uri.parse(
-              '$_baseUrl/api/produtos/'
-              '${Uri.encodeComponent(produtoId)}',
-            ),
-            headers: {'Accept': 'application/json'},
-          )
+      final request = http.Request(
+        metodo,
+        Uri.parse('$_baseUrl$caminho'),
+      );
+
+      request.headers['Accept'] = 'application/json';
+
+      if (requerLogin) {
+        final token = SessaoApp.token;
+
+        if (token == null || token.isEmpty) {
+          throw Exception(
+            'Faça login novamente para enviar a imagem.',
+          );
+        }
+
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+
+      if (dados != null) {
+        request.headers['Content-Type'] =
+            'application/json; charset=utf-8';
+
+        request.body = jsonEncode(dados);
+      }
+
+      final resposta = await _receber(client, request)
           .timeout(const Duration(seconds: 90));
 
-      dynamic dados;
+      dynamic recebido;
 
       try {
-        dados = jsonDecode(utf8.decode(resposta.bodyBytes));
+        recebido = jsonDecode(
+          utf8.decode(resposta.bodyBytes),
+        );
       } on FormatException {
         throw Exception(
-          'O servidor retornou uma resposta inválida. '
+          'Resposta inválida em $caminho. '
           'HTTP ${resposta.statusCode}.',
         );
       }
 
-      if (resposta.statusCode != 200 ||
-          dados is! Map<String, dynamic> ||
-          dados['sucesso'] != true) {
-        var mensagem = 'Não foi possível excluir o produto.';
+      final sucessoHttp =
+          resposta.statusCode >= 200 && resposta.statusCode < 300;
 
-        if (dados is Map<String, dynamic>) {
-          final detalhe = dados['mensagem'] ?? dados['erro'];
+      final recusado = recebido is Map<String, dynamic> &&
+          recebido['sucesso'] == false;
+
+      if (!sucessoHttp || recusado) {
+        var mensagem = 'Não foi possível concluir a operação.';
+
+        if (recebido is Map<String, dynamic>) {
+          final detalhe = recebido['mensagem'] ??
+              recebido['erro'] ??
+              recebido['message'] ??
+              recebido['error'];
 
           if (detalhe is String && detalhe.trim().isNotEmpty) {
             mensagem = detalhe;
           }
         }
 
-        throw Exception('$mensagem (HTTP ${resposta.statusCode})');
-      }
-
-      if (dados['id'] != produtoId) {
-        throw const FormatException(
-          'O servidor não confirmou o ID do produto excluído.',
+        throw Exception(
+          '$mensagem (HTTP ${resposta.statusCode})',
         );
       }
+
+      return recebido;
     } on TimeoutException {
       throw Exception(
-        'A confirmação da exclusão demorou. '
-        'Atualize a lista antes de tentar novamente.',
+        'O servidor demorou para confirmar a operação. '
+        'Confira a lista antes de tentar novamente.',
+      );
+    } on http.ClientException {
+      throw Exception(
+        'Não foi possível conectar à API.',
       );
     } finally {
       client.close();
     }
   }
 
-  const ProdutoApi();
+  String _validarId(String? valor) {
+    final id = valor?.trim();
 
-  static const String _baseUrl = 'http://localhost:8081';
+    if (id == null || id.isEmpty) {
+      throw Exception('O produto não possui um ID válido.');
+    }
+
+    return id;
+  }
 
   Future<List<Produto>> listarProdutos() async {
-    final client = http.Client();
+    final dados = await _requisicao(
+      'GET',
+      '/api/produtos',
+    );
 
-    try {
-      final resposta = await client
-          .get(
-            Uri.parse('$_baseUrl/api/produtos'),
-            headers: {'Accept': 'application/json'},
-          )
-          .timeout(const Duration(seconds: 90));
-
-      if (resposta.statusCode != 200) {
-        throw Exception(
-          'Erro ao buscar produtos: HTTP ${resposta.statusCode}.',
-        );
-      }
-
-      final dados = jsonDecode(resposta.body);
-
-      if (dados is! List) {
-        throw const FormatException(
-          'A API não retornou uma lista de produtos.',
-        );
-      }
-
-      return dados.map<Produto>((item) {
-        if (item is! Map<String, dynamic>) {
-          throw const FormatException('Produto inválido.');
-        }
-
-        return Produto.fromJson(item);
-      }).toList();
-    } on TimeoutException {
-      throw Exception('O servidor demorou para responder. Tente novamente.');
-    } finally {
-      client.close();
+    if (dados is! List) {
+      throw const FormatException(
+        'A API não retornou uma lista de produtos.',
+      );
     }
+
+    return dados.map<Produto>((item) {
+      if (item is! Map<String, dynamic>) {
+        throw const FormatException('Produto inválido.');
+      }
+
+      return Produto.fromJson(item);
+    }).toList();
+  }
+
+  Future<String> enviarImagem(Uint8List bytes) async {
+    if (bytes.isEmpty) {
+      throw Exception('A imagem está vazia.');
+    }
+
+    if (bytes.length > limiteImagemBytes) {
+      throw Exception('Escolha uma imagem de até 5 MB.');
+    }
+
+    final dados = await _requisicao(
+      'POST',
+      '/api/produtos/imagem',
+      requerLogin: true,
+      dados: {
+        'imagemBase64': base64Encode(bytes),
+      },
+    );
+
+    if (dados is! Map<String, dynamic> ||
+        dados['sucesso'] != true ||
+        dados['imagem'] is! String) {
+      throw Exception(
+        'O servidor não confirmou o envio da imagem.',
+      );
+    }
+
+    final url = (dados['imagem'] as String).trim();
+    final uri = Uri.tryParse(url);
+
+    if (uri == null ||
+        uri.host.isEmpty ||
+        (uri.scheme != 'https' && uri.scheme != 'http')) {
+      throw Exception(
+        'O servidor retornou uma URL de imagem inválida.',
+      );
+    }
+
+    return url;
   }
 
   Future<void> cadastrarProduto({
@@ -117,136 +189,90 @@ class ProdutoApi {
     required double preco,
     required String categoria,
     required bool ativo,
+    String? imagem,
   }) async {
-    final client = http.Client();
+    final dados = await _requisicao(
+      'POST',
+      '/api/produtos',
+      dados: {
+        'nome': nome,
+        'descricao': descricao,
+        'preco': preco,
+        'imagem': imagem,
+        'categoria': categoria,
+        'ativo': ativo,
+      },
+    );
 
-    try {
-      final resposta = await client
-          .post(
-            Uri.parse('$_baseUrl/api/produtos'),
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-              'Accept': 'application/json',
-            },
-            body: jsonEncode({
-              'nome': nome,
-              'descricao': descricao,
-              'preco': preco,
-              'imagem': null,
-              'categoria': categoria,
-              'ativo': ativo,
-            }),
-          )
-          .timeout(const Duration(seconds: 90));
-
-      if (resposta.statusCode == 200 || resposta.statusCode == 201) {
-        return;
-      }
-
-      var mensagem = 'Erro ao cadastrar: HTTP ${resposta.statusCode}.';
-
-      try {
-        final dados = jsonDecode(utf8.decode(resposta.bodyBytes));
-
-        if (dados is Map<String, dynamic>) {
-          final detalhe =
-              dados['mensagem'] ?? dados['message'] ?? dados['error'];
-
-          if (detalhe is String && detalhe.trim().isNotEmpty) {
-            mensagem = '$mensagem $detalhe';
-          }
-        }
-      } on FormatException {
-        // Mantém a mensagem com o status HTTP.
-      }
-
-      throw Exception(mensagem);
-    } on TimeoutException {
+    if (dados is! Map<String, dynamic> ||
+        dados['sucesso'] != true) {
       throw Exception(
-        'O cadastro demorou para confirmar. '
-        'Confira a lista antes de enviar novamente.',
+        'A API não confirmou o cadastro do produto.',
       );
-    } finally {
-      client.close();
     }
   }
 
-  Future<Produto> atualizarProduto(Produto produto) async {
-    final id = produto.id?.trim();
+  Future<Produto> atualizarProduto(
+    Produto produto, {
+    String? novaImagemUrl,
+  }) async {
+    final id = _validarId(produto.id);
 
-    if (id == null || id.isEmpty) {
-      throw Exception('Este produto não possui um ID válido para edição.');
+    final dados = await _requisicao(
+      'PUT',
+      '/api/produtos/${Uri.encodeComponent(id)}',
+      dados: {
+        'nome': produto.nome,
+        'descricao': produto.descricao,
+        'preco': produto.preco,
+        'categoria':
+            produto.categoria?.titulo ?? produto.categoriaApi,
+        'ativo': produto.ativo,
+        if (novaImagemUrl != null) 'imagem': novaImagemUrl,
+        if (novaImagemUrl != null) 'imagemUrl': novaImagemUrl,
+      },
+    );
+
+    if (dados is! Map<String, dynamic> ||
+        dados['sucesso'] != true) {
+      throw Exception(
+        'A API não confirmou a atualização.',
+      );
     }
 
-    final client = http.Client();
+    final registro = dados['produto'];
 
-    try {
-      final resposta = await client
-          .put(
-            Uri.parse('$_baseUrl/api/produtos/${Uri.encodeComponent(id)}'),
-            headers: {
-              'Content-Type': 'application/json; charset=utf-8',
-              'Accept': 'application/json',
-            },
-            body: jsonEncode({
-              'nome': produto.nome,
-              'descricao': produto.descricao,
-              'preco': produto.preco,
-              'categoria': produto.categoria?.titulo ?? produto.categoriaApi,
-              'ativo': produto.ativo,
-            }),
-          )
-          .timeout(const Duration(seconds: 90));
-
-      dynamic dados;
-
-      try {
-        dados = jsonDecode(utf8.decode(resposta.bodyBytes));
-      } on FormatException {
-        throw Exception(
-          'O servidor retornou uma resposta inválida. '
-          'HTTP ${resposta.statusCode}.',
-        );
-      }
-
-      if (resposta.statusCode != 200 ||
-          dados is! Map<String, dynamic> ||
-          dados['sucesso'] != true) {
-        var mensagem = 'Não foi possível atualizar o produto.';
-
-        if (dados is Map<String, dynamic>) {
-          final detalhe = dados['mensagem'] ?? dados['erro'];
-
-          if (detalhe is String && detalhe.trim().isNotEmpty) {
-            mensagem = detalhe;
-          }
-        }
-
-        throw Exception('$mensagem (HTTP ${resposta.statusCode})');
-      }
-
-      final registro = dados['produto'];
-
-      if (registro is! Map<String, dynamic>) {
-        throw const FormatException('O servidor não retornou o produto salvo.');
-      }
-
-      final salvo = Produto.fromJson(registro);
-
-      if (salvo.id != id) {
-        throw const FormatException(
-          'O servidor retornou um produto diferente do solicitado.',
-        );
-      }
-
-      return salvo;
-    } on TimeoutException {
+    if (registro is! Map<String, dynamic>) {
       throw Exception(
-        'A confirmação da atualização demorou. '
-        'Atualize a lista antes de tentar novamente.',
+        'O servidor não retornou o produto salvo.',
       );
-    } finally {
-      client.close();
+    }
+
+    final salvo = Produto.fromJson(registro);
+
+    if (salvo.id != id) {
+      throw Exception(
+        'O servidor retornou um produto diferente do solicitado.',
+      );
+    }
+
+    return salvo;
+  }
+
+  Future<void> excluirProduto(String id) async {
+    final produtoId = _validarId(id);
+
+    final dados = await _requisicao(
+      'DELETE',
+      '/api/produtos/${Uri.encodeComponent(produtoId)}',
+    );
+
+    if (dados is! Map<String, dynamic> ||
+        dados['sucesso'] != true ||
+        dados['id'] != produtoId) {
+      throw Exception(
+        'O servidor não confirmou a exclusão do produto.',
+      );
     }
   }
 }
