@@ -4,75 +4,63 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 
-import 'package:crud_mobile_grafica/features/products/data/produto_api.dart';
-import 'package:crud_mobile_grafica/features/products/models/produto.dart';
 import 'package:crud_mobile_grafica/features/widgets/app_bottom_bar.dart';
+import 'package:crud_mobile_grafica/features/products/models/produto.dart';
+import 'package:crud_mobile_grafica/features/products/data/produto_api.dart';
 
 class ResultadoEdicaoProduto {
   final Produto? produto;
   final bool foiExcluido;
 
   const ResultadoEdicaoProduto.salvo(Produto produto)
-      : produto = produto,
-        foiExcluido = false;
+    : produto = produto,
+      foiExcluido = false;
 
-  const ResultadoEdicaoProduto.excluido()
-      : produto = null,
-        foiExcluido = true;
+  const ResultadoEdicaoProduto.excluido() : produto = null, foiExcluido = true;
 }
 
 class ProductDeleteUpdateScreen extends StatefulWidget {
   final Produto produto;
 
-  const ProductDeleteUpdateScreen({
-    super.key,
-    required this.produto,
-  });
+  const ProductDeleteUpdateScreen({super.key, required this.produto});
 
   @override
   State<ProductDeleteUpdateScreen> createState() =>
       _ProductDeleteUpdateScreenState();
 }
 
-class _ProductDeleteUpdateScreenState
-    extends State<ProductDeleteUpdateScreen> {
+class _ProductDeleteUpdateScreenState extends State<ProductDeleteUpdateScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _produtoApi = const ProdutoApi();
+  final ProdutoApi _produtoApi = const ProdutoApi();
 
   late final TextEditingController _nomeController;
   late final TextEditingController _precoController;
   late final TextEditingController _descricaoController;
 
-  CategoriaProduto? _categoriaSelecionada;
   Uint8List? _imagemBytes;
-  String? _nomeImagem;
-  String? _novaImagemUrl;
+  CategoriaProduto? _categoriaSelecionada;
 
-  bool _imagemAlterada = false;
   bool _ativo = true;
   bool _salvando = false;
-  bool _excluindo = false;
-  bool _lendoImagem = false;
-
-  bool get _ocupado => _salvando || _excluindo || _lendoImagem;
+  bool _fotoAlterada = false;
 
   @override
   void initState() {
     super.initState();
 
-    final produto = widget.produto;
+    _nomeController = TextEditingController(text: widget.produto.nome);
 
-    _nomeController = TextEditingController(text: produto.nome);
     _precoController = TextEditingController(
-      text: produto.preco.toStringAsFixed(2).replaceAll('.', ','),
-    );
-    _descricaoController = TextEditingController(
-      text: produto.descricao,
+      text: widget.produto.preco.toStringAsFixed(2).replaceAll('.', ','),
     );
 
-    _categoriaSelecionada = produto.categoria;
-    _imagemBytes = produto.imagemBytes;
-    _ativo = produto.ativo;
+    _descricaoController = TextEditingController(
+      text: widget.produto.descricao,
+    );
+
+    _categoriaSelecionada = widget.produto.categoria;
+    _ativo = widget.produto.ativo;
+    _imagemBytes = widget.produto.imagemBytes;
   }
 
   @override
@@ -80,13 +68,8 @@ class _ProductDeleteUpdateScreenState
     _nomeController.dispose();
     _precoController.dispose();
     _descricaoController.dispose();
-    super.dispose();
-  }
 
-  void _mostrarMensagem(String mensagem) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(mensagem)),
-    );
+    super.dispose();
   }
 
   double? _lerPreco(String texto) {
@@ -97,190 +80,178 @@ class _ProductDeleteUpdateScreenState
     }
 
     final valor = double.tryParse(normalizado);
-    return valor != null && valor.isFinite && valor > 0 ? valor : null;
+
+    if (valor == null || !valor.isFinite || valor <= 0) {
+      return null;
+    }
+
+    return valor;
   }
 
   Future<void> _selecionarImagem() async {
-    if (_ocupado) return;
-
-    setState(() => _lendoImagem = true);
+    if (_salvando) return;
 
     try {
-      final arquivos = await FilePicker.pickFiles(
-        type: FileType.image,
-      );
+      final arquivos = await FilePicker.pickFiles(type: FileType.image);
 
-      if (!mounted || arquivos.isEmpty) return;
+      if (!mounted || _salvando || arquivos.isEmpty) return;
 
-      final arquivo = arquivos.first;
-      final bytes = await arquivo.readAsBytes();
+      final bytes = await arquivos.first.readAsBytes();
 
-      if (!mounted) return;
+      if (!mounted || _salvando) return;
 
-      if (bytes.isEmpty || bytes.length > ProdutoApi.limiteImagemBytes) {
-        throw const ProdutoApiException(
-          'Selecione uma imagem válida de até 5 MB.',
-        );
+      if (bytes.isEmpty) {
+        throw const FormatException('Imagem vazia.');
       }
 
       setState(() {
         _imagemBytes = bytes;
-        _nomeImagem = arquivo.name;
-        _imagemAlterada = true;
-        _novaImagemUrl = null;
+        _fotoAlterada = true;
       });
-    } catch (erro) {
-      if (mounted) _mostrarMensagem(erro.toString());
-    } finally {
-      if (mounted) setState(() => _lendoImagem = false);
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível abrir essa imagem.')),
+      );
     }
   }
 
   Future<void> _salvar() async {
-    if (_ocupado) return;
-    if (_formKey.currentState?.validate() != true) return;
+    if (_salvando) return;
+    if (!_formKey.currentState!.validate()) return;
 
-    final id = widget.produto.id;
-
-    if (id == null || id.trim().isEmpty) {
-      _mostrarMensagem('Produto sem ID. Atualize a listagem.');
-      return;
-    }
-
-    final nome = _nomeController.text.trim();
-    final descricao = _descricaoController.text.trim();
-    final preco = _lerPreco(_precoController.text)!;
     final categoria = _categoriaSelecionada!;
-    final ativo = _ativo;
-    final foto = _imagemBytes;
+    final fotoFoiTrocada = _fotoAlterada;
 
-    setState(() => _salvando = true);
+    final atualizado = Produto(
+      id: widget.produto.id,
+      nome: _nomeController.text.trim(),
+      preco: _lerPreco(_precoController.text)!,
+      descricao: _descricaoController.text.trim(),
+      categoria: categoria,
+      categoriaApi: categoria.titulo,
+      ativo: _ativo,
+      imagem: widget.produto.imagem,
+    );
 
-    Produto? salvo;
+    setState(() {
+      _salvando = true;
+    });
 
     try {
-      if (_imagemAlterada && foto != null && _novaImagemUrl == null) {
-        final url = await _produtoApi.enviarImagem(
-          bytes: foto,
-          nomeArquivo: _nomeImagem ?? nome,
+      final salvo = await _produtoApi.atualizarProduto(atualizado);
+
+      if (!mounted) return;
+
+      final mensageiro = ScaffoldMessenger.of(context);
+
+      Navigator.pop(context, ResultadoEdicaoProduto.salvo(salvo));
+
+      if (fotoFoiTrocada) {
+        mensageiro.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Dados salvos. A foto não foi alterada; '
+              'o envio de imagens ainda não está disponível.',
+            ),
+          ),
         );
-
-        if (!mounted) return;
-        _novaImagemUrl = url;
       }
-
-      final atualizado = Produto(
-        id: id,
-        nome: nome,
-        preco: preco,
-        descricao: descricao,
-        categoria: categoria,
-        categoriaApi: categoria.titulo,
-        ativo: ativo,
-        imagem: _novaImagemUrl ?? widget.produto.imagem,
-      );
-
-      salvo = await _produtoApi.atualizarProduto(atualizado);
     } catch (erro) {
+      if (!mounted) return;
+
       debugPrint('Erro ao editar produto: $erro');
-      if (mounted) _mostrarMensagem(erro.toString());
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(erro.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
     } finally {
-      if (mounted) setState(() => _salvando = false);
+      if (mounted) {
+        setState(() {
+          _salvando = false;
+        });
+      }
     }
-
-    if (!mounted || salvo == null) return;
-
-    Navigator.pop(
-      context,
-      ResultadoEdicaoProduto.salvo(salvo),
-    );
   }
 
   Future<void> _deletar() async {
-    if (_ocupado) return;
+    if (_salvando) return;
 
-    final confirmou = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Deletar produto?'),
-        content: Text(
-          'Deseja deletar "${widget.produto.nome}"?',
+    final id = widget.produto.id?.trim();
+
+    if (id == null || id.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Este produto não possui um ID válido para exclusão.'),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Deletar'),
-          ),
-        ],
-      ),
-    );
+      );
+      return;
+    }
 
-    if (!mounted || confirmou != true) return;
-
-    setState(() => _excluindo = true);
-
-    var removido = false;
+    setState(() {
+      _salvando = true;
+    });
 
     try {
-      await _produtoApi.excluirProduto(widget.produto.id);
-      removido = true;
+      final confirmou = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('Deletar produto?'),
+            content: Text('Deseja deletar "${widget.produto.nome}"?'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext, false);
+                },
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext, true);
+                },
+                child: const Text('Deletar'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (!mounted || confirmou != true) return;
+
+      await _produtoApi.excluirProduto(id);
+
+      if (!mounted) return;
+
+      Navigator.pop(context, const ResultadoEdicaoProduto.excluido());
     } catch (erro) {
+      if (!mounted) return;
+
       debugPrint('Erro ao excluir produto: $erro');
-      if (mounted) _mostrarMensagem(erro.toString());
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(erro.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
     } finally {
-      if (mounted) setState(() => _excluindo = false);
+      if (mounted) {
+        setState(() {
+          _salvando = false;
+        });
+      }
     }
-
-    if (!mounted || !removido) return;
-
-    Navigator.pop(
-      context,
-      const ResultadoEdicaoProduto.excluido(),
-    );
   }
 
-  ImageProvider<Object>? _imagemAtual() {
-    final bytes = _imagemBytes;
-
-    if (bytes != null && bytes.isNotEmpty) {
-      return MemoryImage(bytes);
-    }
-
-    final caminho = widget.produto.imagem?.trim();
-
-    if (caminho == null || caminho.isEmpty) return null;
-
-    final uri = Uri.tryParse(caminho);
-
-    if (uri != null &&
-        uri.host.isNotEmpty &&
-        (uri.scheme == 'http' || uri.scheme == 'https')) {
-      return NetworkImage(caminho);
-    }
-
-    return AssetImage(caminho);
-  }
-
-  InputDecoration _decoracao(
-    String titulo, {
-    bool preco = false,
-    bool descricao = false,
-  }) {
+  InputDecoration _decoracao(String titulo) {
     return InputDecoration(
       hintText: titulo,
-      prefixText: preco ? 'R\$ ' : null,
       filled: true,
-      fillColor: descricao
-          ? const Color(0xFFE5EDF9)
-          : const Color(0xFF91A9E8),
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 14,
-      ),
+      fillColor: const Color(0xFF91A9E8),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
@@ -288,61 +259,29 @@ class _ProductDeleteUpdateScreenState
     );
   }
 
-  Widget _campo(
-    TextEditingController controller,
-    String titulo, {
-    bool preco = false,
-    int linhas = 1,
-    bool obrigatorio = true,
-  }) {
-    return TextFormField(
-      controller: controller,
-      enabled: !_ocupado,
-      textAlign: linhas == 1 ? TextAlign.center : TextAlign.start,
-      maxLines: linhas,
-      keyboardType: preco
-          ? const TextInputType.numberWithOptions(decimal: true)
-          : linhas > 1
-              ? TextInputType.multiline
-              : TextInputType.text,
-      inputFormatters: preco
-          ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]'))]
-          : null,
-      decoration: _decoracao(
-        titulo,
-        preco: preco,
-        descricao: linhas > 1,
-      ),
-      validator: (valor) {
-        if (obrigatorio && (valor == null || valor.trim().isEmpty)) {
-          return 'Informe $titulo.';
-        }
-
-        if (preco && _lerPreco(valor ?? '') == null) {
-          return 'Informe um preço maior que zero, como 25,90.';
-        }
-
-        return null;
-      },
-    );
-  }
-
-  Widget _conteudoBotao(String texto, bool carregando) {
-    if (!carregando) return Text(texto);
-
-    return const SizedBox(
-      width: 22,
-      height: 22,
-      child: CircularProgressIndicator(
-        strokeWidth: 2,
-        color: Colors.white,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final imagem = _imagemAtual();
+    final bytes = _imagemBytes;
+    final caminho = widget.produto.imagem?.trim();
+
+    ImageProvider<Object>? imagem;
+
+    if (bytes != null && bytes.isNotEmpty) {
+      imagem = MemoryImage(bytes);
+    } else if (caminho != null && caminho.isNotEmpty) {
+      final uri = Uri.tryParse(caminho);
+
+      final imagemRemota =
+          uri != null &&
+          uri.host.isNotEmpty &&
+          (uri.scheme == 'http' || uri.scheme == 'https');
+
+      if (imagemRemota) {
+        imagem = NetworkImage(caminho);
+      } else {
+        imagem = AssetImage(caminho);
+      }
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFF081129),
@@ -357,38 +296,66 @@ class _ProductDeleteUpdateScreenState
         top: false,
         bottom: false,
         child: Builder(
-          builder: (bodyContext) => SingleChildScrollView(
-            keyboardDismissBehavior:
-                ScrollViewKeyboardDismissBehavior.onDrag,
-            padding: EdgeInsets.fromLTRB(
-              16,
-              16,
-              16,
-              MediaQuery.paddingOf(bodyContext).bottom + 16,
-            ),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _campo(_nomeController, 'Nome'),
-                  const SizedBox(height: 16),
-                  _campo(_precoController, 'Preço', preco: true),
-                  const SizedBox(height: 16),
+          builder: (bodyContext) {
+            return SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                MediaQuery.paddingOf(bodyContext).bottom + 16,
+              ),
+              child: AbsorbPointer(
+                absorbing: _salvando,
+                child: Form(
+                  key: _formKey,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextFormField(
+                        controller: _nomeController,
+                        textAlign: TextAlign.center,
+                        textInputAction: TextInputAction.next,
+                        decoration: _decoracao('Nome'),
+                        validator: (valor) {
+                          if (valor == null || valor.trim().isEmpty) {
+                            return 'Informe o nome do produto.';
+                          }
 
-                  Material(
-                    color: const Color(0xFFE5EDF9),
-                    borderRadius: BorderRadius.circular(16),
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      onTap: _ocupado ? null : _selecionarImagem,
-                      child: SizedBox(
-                        height: 170,
-                        child: _lendoImagem
-                            ? const Center(
-                                child: CircularProgressIndicator(),
-                              )
-                            : imagem == null
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _precoController,
+                        textAlign: TextAlign.center,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
+                        ],
+                        decoration: _decoracao('Preço')
+                            .copyWith(prefixText: 'R\$ '),
+                        validator: (valor) {
+                          if (_lerPreco(valor ?? '') == null) {
+                            return 'Informe um preço maior que zero, como 10,50.';
+                          }
+
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Material(
+                        color: const Color(0xFFE5EDF9),
+                        borderRadius: BorderRadius.circular(16),
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: _salvando ? null : _selecionarImagem,
+                          child: SizedBox(
+                            height: 170,
+                            child: imagem == null
                                 ? const Icon(
                                     Icons.add,
                                     size: 64,
@@ -397,112 +364,106 @@ class _ProductDeleteUpdateScreenState
                                 : Image(
                                     image: imagem,
                                     fit: BoxFit.contain,
-                                    errorBuilder: (_, __, ___) =>
-                                        const Icon(
-                                      Icons.image_not_supported_outlined,
-                                      size: 48,
-                                    ),
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Icon(
+                                        Icons.image_not_supported_outlined,
+                                        size: 48,
+                                      );
+                                    },
                                   ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-                  _campo(
-                    _descricaoController,
-                    'Descrição',
-                    linhas: 4,
-                    obrigatorio: false,
-                  ),
-                  const SizedBox(height: 16),
-
-                  if (_categoriaSelecionada == null &&
-                      widget.produto.categoriaApi?.isNotEmpty == true)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        'Categoria atual: ${widget.produto.categoriaApi}. '
-                        'Escolha uma das opções abaixo.',
-                        style: const TextStyle(color: Colors.white70),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _descricaoController,
+                        minLines: 3,
+                        maxLines: 5,
+                        decoration: _decoracao('Descrição')
+                            .copyWith(fillColor: const Color(0xFFE5EDF9)),
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<CategoriaProduto>(
+                        initialValue: _categoriaSelecionada,
+                        isExpanded: true,
+                        dropdownColor: const Color(0xFF91A9E8),
+                        decoration: _decoracao('Categoria'),
+                        hint: const Text('Selecione uma categoria'),
+                        items: CategoriaProduto.values.map((categoria) {
+                          return DropdownMenuItem<CategoriaProduto>(
+                            value: categoria,
+                            child: Text(categoria.titulo),
+                          );
+                        }).toList(),
+                        onChanged: (valor) {
+                          setState(() {
+                            _categoriaSelecionada = valor;
+                          });
+                        },
+                        validator: (valor) {
+                          if (valor == null) {
+                            return 'Selecione uma categoria.';
+                          }
 
-                  DropdownButtonFormField<CategoriaProduto>(
-                    initialValue: _categoriaSelecionada,
-                    isExpanded: true,
-                    dropdownColor: const Color(0xFF91A9E8),
-                    decoration: _decoracao('Categoria'),
-                    hint: const Text('Selecione uma categoria'),
-                    items: CategoriaProduto.values.map((categoria) {
-                      return DropdownMenuItem(
-                        value: categoria,
-                        child: Text(categoria.titulo),
-                      );
-                    }).toList(),
-                    onChanged: _ocupado
-                        ? null
-                        : (valor) => setState(
-                              () => _categoriaSelecionada = valor,
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Material(
+                        color: const Color(0xFFE5EDF9),
+                        borderRadius: BorderRadius.circular(12),
+                        clipBehavior: Clip.antiAlias,
+                        child: SwitchListTile(
+                          title: const Text(
+                            'Produto ativo',
+                            style: TextStyle(
+                              color: Color(0xFF081129),
+                              fontWeight: FontWeight.w600,
                             ),
-                    validator: (valor) =>
-                        valor == null ? 'Selecione uma categoria.' : null,
+                          ),
+                          subtitle: Text(_ativo ? 'Ativado' : 'Desativado'),
+                          activeTrackColor: const Color(0xFF13C28A),
+                          value: _ativo,
+                          onChanged: (valor) {
+                            setState(() {
+                              _ativo = valor;
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      FilledButton(
+                        onPressed: _salvando ? null : _salvar,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF8800),
+                          foregroundColor: const Color(0xFF081129),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: const StadiumBorder(),
+                        ),
+                        child: Text(
+                          _salvando ? 'Salvando...' : 'Salvar alterações',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton(
+                        onPressed: _salvando ? null : _deletar,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFFDC2626),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: const StadiumBorder(),
+                        ),
+                        child: const Text('Deletar'),
+                      ),
+                    ],
                   ),
-
-                  const SizedBox(height: 16),
-
-                  Material(
-                    color: const Color(0xFFE5EDF9),
-                    borderRadius: BorderRadius.circular(12),
-                    clipBehavior: Clip.antiAlias,
-                    child: SwitchListTile(
-                      title: const Text('Produto ativo'),
-                      subtitle: Text(_ativo ? 'Ativado' : 'Desativado'),
-                      activeTrackColor: const Color(0xFF13C28A),
-                      value: _ativo,
-                      onChanged: _ocupado
-                          ? null
-                          : (valor) => setState(() => _ativo = valor),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  FilledButton(
-                    onPressed: _ocupado ? null : _salvar,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF8800),
-                      foregroundColor: const Color(0xFF081129),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: const StadiumBorder(),
-                    ),
-                    child: _conteudoBotao(
-                      'Salvar alterações',
-                      _salvando,
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  FilledButton(
-                    onPressed: _ocupado ? null : _deletar,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFDC2626),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: const StadiumBorder(),
-                    ),
-                    child: _conteudoBotao('Deletar', _excluindo),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
-      bottomNavigationBar: IgnorePointer(
-        ignoring: _ocupado,
-        child: const AppBottomBar(selectedIndex: 1),
-      ),
+      bottomNavigationBar: AppBottomBar(selectedIndex: 1),
     );
   }
 }

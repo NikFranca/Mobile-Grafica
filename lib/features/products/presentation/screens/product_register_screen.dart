@@ -1,12 +1,10 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 
+import 'package:crud_mobile_grafica/features/widgets/app_bottom_bar.dart';
 import 'package:crud_mobile_grafica/features/products/data/produto_api.dart';
 import 'package:crud_mobile_grafica/features/products/models/produto.dart';
-import 'package:crud_mobile_grafica/features/widgets/app_bottom_bar.dart';
 
 class ProductRegisterScreen extends StatefulWidget {
   const ProductRegisterScreen({super.key});
@@ -16,32 +14,22 @@ class ProductRegisterScreen extends StatefulWidget {
       _ProductRegisterScreenState();
 }
 
-class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _produtoApi = const ProdutoApi();
+class _ProductRegisterScreenState
+    extends State<ProductRegisterScreen> {
+  final nomeController = TextEditingController();
+  final precoController = TextEditingController();
+  final descricaoController = TextEditingController();
+  final categoriaController = TextEditingController();
 
-  final _nomeController = TextEditingController();
-  final _precoController = TextEditingController();
-  final _descricaoController = TextEditingController();
+  final ProdutoApi _produtoApi = ProdutoApi();
 
-  CategoriaProduto? _categoria;
-  Uint8List? _imagemBytes;
-  String? _nomeImagem;
-  String? _imagemUrlEnviada;
-
-  bool _ativo = true;
   bool _enviando = false;
-  bool _lendoImagem = false;
+  bool produtoAtivo = true;
 
-  bool get _ocupado => _enviando || _lendoImagem;
+  PlatformFile? imagemSelecionada;
 
-  @override
-  void dispose() {
-    _nomeController.dispose();
-    _precoController.dispose();
-    _descricaoController.dispose();
-    super.dispose();
-  }
+  get bottomNavigationBar =>
+      const AppBottomBar(selectedIndex: 2);
 
   void _mostrarMensagem(String mensagem) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -49,157 +37,90 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
     );
   }
 
-  double? _lerPreco(String texto) {
-    final normalizado = texto.trim().replaceAll(',', '.');
-
-    if (!RegExp(r'^\d+(\.\d{1,2})?$').hasMatch(normalizado)) {
-      return null;
-    }
-
-    final valor = double.tryParse(normalizado);
-    return valor != null && valor.isFinite && valor > 0 ? valor : null;
-  }
-
-  Future<void> _selecionarImagem() async {
-    if (_ocupado) return;
-
-    setState(() => _lendoImagem = true);
-
-    try {
-      final arquivos = await FilePicker.pickFiles(
-        type: FileType.image,
-      );
-
-      if (!mounted || arquivos.isEmpty) return;
-
-      final arquivo = arquivos.first;
-      final bytes = await arquivo.readAsBytes();
-
-      if (!mounted) return;
-
-      if (bytes.isEmpty || bytes.length > ProdutoApi.limiteImagemBytes) {
-        throw const ProdutoApiException(
-          'Selecione uma imagem válida de até 5 MB.',
-        );
-      }
-
-      setState(() {
-        _imagemBytes = bytes;
-        _nomeImagem = arquivo.name;
-        _imagemUrlEnviada = null;
-      });
-    } catch (erro) {
-      if (mounted) _mostrarMensagem(erro.toString());
-    } finally {
-      if (mounted) setState(() => _lendoImagem = false);
-    }
-  }
-
   Future<void> _enviarProduto() async {
-    if (_ocupado) return;
-    if (_formKey.currentState?.validate() != true) return;
+    if (_enviando) return;
 
-    final nome = _nomeController.text.trim();
-    final descricao = _descricaoController.text.trim();
-    final preco = _lerPreco(_precoController.text)!;
-    final categoria = _categoria!.titulo;
-    final ativo = _ativo;
-    final foto = _imagemBytes;
-    final nomeFoto = _nomeImagem ?? nome;
+    final nome = nomeController.text.trim();
+    final descricao = descricaoController.text.trim();
+    final categoria = categoriaController.text.trim();
+    final ativo = produtoAtivo;
 
-    setState(() => _enviando = true);
+    final preco = double.tryParse(
+      precoController.text.trim().replaceAll(',', '.'),
+    );
 
-    var cadastrado = false;
+    if (nome.isEmpty || descricao.isEmpty || categoria.isEmpty) {
+      _mostrarMensagem(
+        'Preencha nome, descrição e categoria.',
+      );
+      return;
+    }
+
+    if (preco == null || !preco.isFinite || preco <= 0) {
+      _mostrarMensagem(
+        'Informe um preço maior que zero, como 25,90.',
+      );
+      return;
+    }
+
+    setState(() {
+      _enviando = true;
+    });
 
     try {
-      if (foto != null && _imagemUrlEnviada == null) {
-        final url = await _produtoApi.enviarImagem(
-          bytes: foto,
-          nomeArquivo: nomeFoto,
-        );
-
-        if (!mounted) return;
-        _imagemUrlEnviada = url;
-      }
-
       await _produtoApi.cadastrarProduto(
         nome: nome,
         descricao: descricao,
         preco: preco,
         categoria: categoria,
         ativo: ativo,
-        imagem: _imagemUrlEnviada,
       );
 
-      cadastrado = true;
+      if (!mounted) return;
+
+      _mostrarMensagem(
+        'Produto cadastrado com sucesso!',
+      );
     } catch (erro) {
+      if (!mounted) return;
+
       debugPrint('Erro ao cadastrar produto: $erro');
-      if (mounted) _mostrarMensagem(erro.toString());
+
+      _mostrarMensagem(
+        erro.toString().replaceFirst('Exception: ', ''),
+      );
     } finally {
-      if (mounted) setState(() => _enviando = false);
+      if (mounted) {
+        setState(() {
+          _enviando = false;
+        });
+      }
     }
-
-    if (!mounted || !cadastrado) return;
-
-    _mostrarMensagem('Produto cadastrado com sucesso!');
-    Navigator.pushReplacementNamed(context, '/filtros');
   }
 
-  InputDecoration _decoracao(
-    String titulo, {
-    Color cor = const Color(0xFF8FA8E8),
-    bool preco = false,
-  }) {
-    return InputDecoration(
-      hintText: titulo,
-      prefixText: preco ? 'R\$ ' : null,
-      filled: true,
-      fillColor: cor,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide.none,
-      ),
+  Future<void> selecionarImagem() async {
+    final resultado = await FilePicker.pickFiles(
+      type: FileType.image,
     );
+
+    if (resultado != null && resultado.isNotEmpty) {
+      setState(() {
+        imagemSelecionada = resultado.first;
+      });
+
+      debugPrint(
+        'Imagem selecionada: ${imagemSelecionada!.name}',
+      );
+    }
   }
 
-  Widget _campo(
-    TextEditingController controller,
-    String titulo, {
-    bool preco = false,
-    int linhas = 1,
-  }) {
-    return TextFormField(
-      controller: controller,
-      enabled: !_ocupado,
-      textAlign: TextAlign.center,
-      maxLines: linhas,
-      keyboardType: preco
-          ? const TextInputType.numberWithOptions(decimal: true)
-          : linhas > 1
-              ? TextInputType.multiline
-              : TextInputType.text,
-      inputFormatters: preco
-          ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]'))]
-          : null,
-      decoration: _decoracao(
-        titulo,
-        preco: preco,
-        cor: linhas > 1
-            ? const Color(0xFFDCE8F5)
-            : const Color(0xFF8FA8E8),
-      ),
-      validator: (valor) {
-        if (valor == null || valor.trim().isEmpty) {
-          return 'Informe $titulo.';
-        }
-
-        if (preco && _lerPreco(valor) == null) {
-          return 'Informe um preço maior que zero, como 25,90.';
-        }
-
-        return null;
-      },
-    );
+  @override
+  void dispose() {
+    nomeController.dispose();
+    precoController.dispose();
+    descricaoController.dispose();
+    categoriaController.dispose();
+    super.dispose();
   }
 
   @override
@@ -207,124 +128,229 @@ class _ProductRegisterScreenState extends State<ProductRegisterScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF081129),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 25,
-            vertical: 15,
-          ),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 30),
-                _campo(_nomeController, 'Nome'),
-                const SizedBox(height: 30),
-                _campo(_precoController, 'Preço', preco: true),
-                const SizedBox(height: 30),
-
-                Material(
-                  color: const Color(0xFFDCE8F5),
-                  borderRadius: BorderRadius.circular(12),
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: _ocupado ? null : _selecionarImagem,
-                    child: SizedBox(
-                      height: 160,
-                      child: _lendoImagem
-                          ? const Center(
-                              child: CircularProgressIndicator(),
-                            )
-                          : _imagemBytes == null
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 25,
+                  vertical: 15,
+                ),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 30),
+                    TextField(
+                      controller: nomeController,
+                      textAlign: TextAlign.center,
+                      decoration: InputDecoration(
+                        hintText: 'Nome',
+                        filled: true,
+                        fillColor: const Color(0xFF8FA8E8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    TextField(
+                      controller: precoController,
+                      textAlign: TextAlign.center,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[0-9,.]'),
+                        ),
+                      ],
+                      decoration: InputDecoration(
+                        hintText: 'Preço',
+                        prefixText: 'R\$ ',
+                        filled: true,
+                        fillColor: const Color(0xFF8FA8E8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    InkWell(
+                      onTap: selecionarImagem,
+                      child: Container(
+                        width: double.infinity,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDCE8F5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: imagemSelecionada == null
                               ? const Icon(
                                   Icons.add,
                                   size: 70,
                                   color: Color(0xFF9BE5BB),
                                 )
-                              : Image.memory(
-                                  _imagemBytes!,
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (_, __, ___) =>
-                                      const Icon(
-                                    Icons.image_not_supported_outlined,
-                                    size: 48,
-                                  ),
+                              : Column(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle,
+                                      size: 45,
+                                      color: Colors.green,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'Imagem selecionada',
+                                      style: TextStyle(
+                                        fontWeight:
+                                            FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Padding(
+                                      padding:
+                                          const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                      ),
+                                      child: Text(
+                                        imagemSelecionada!.name,
+                                        textAlign: TextAlign.center,
+                                        overflow:
+                                            TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-
-                const SizedBox(height: 30),
-                _campo(_descricaoController, 'Descrição', linhas: 3),
-                const SizedBox(height: 22),
-
-                DropdownButtonFormField<CategoriaProduto>(
-                  initialValue: _categoria,
-                  isExpanded: true,
-                  dropdownColor: const Color(0xFF8FA8E8),
-                  decoration: _decoracao('Categoria'),
-                  hint: const Text('Selecione uma categoria'),
-                  items: CategoriaProduto.values.map((categoria) {
-                    return DropdownMenuItem(
-                      value: categoria,
-                      child: Text(categoria.titulo),
-                    );
-                  }).toList(),
-                  onChanged: _ocupado
-                      ? null
-                      : (valor) => setState(() => _categoria = valor),
-                  validator: (valor) =>
-                      valor == null ? 'Selecione uma categoria.' : null,
-                ),
-
-                const SizedBox(height: 16),
-
-                Material(
-                  color: const Color(0xFFDCE8F5),
-                  borderRadius: BorderRadius.circular(8),
-                  clipBehavior: Clip.antiAlias,
-                  child: SwitchListTile(
-                    title: const Text('Produto ativo'),
-                    subtitle: Text(_ativo ? 'Ativado' : 'Desativado'),
-                    activeTrackColor: const Color(0xFF13C28A),
-                    value: _ativo,
-                    onChanged: _ocupado
-                        ? null
-                        : (valor) => setState(() => _ativo = valor),
-                  ),
-                ),
-
-                const SizedBox(height: 22),
-
-                SizedBox(
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: _ocupado ? null : _enviarProduto,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF13C28A),
-                      foregroundColor: Colors.white,
-                      shape: const StadiumBorder(),
+                    const SizedBox(height: 30),
+                    TextField(
+                      controller: descricaoController,
+                      maxLines: 3,
+                      textAlign: TextAlign.center,
+                      decoration: InputDecoration(
+                        hintText: 'Descrição',
+                        filled: true,
+                        fillColor: const Color(0xFFDCE8F5),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
                     ),
-                    child: _enviando
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Enviar'),
-                  ),
+                    const SizedBox(height: 22),
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      hint: const Text(
+                        'Selecione uma categoria',
+                      ),
+                      dropdownColor: const Color(0xFF8FA8E8),
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                      ),
+                      icon: const Icon(
+                        Icons.expand_more_rounded,
+                        color: Color(0xFF081129),
+                      ),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFF8FA8E8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      items:
+                          CategoriaProduto.values.map((categoria) {
+                        return DropdownMenuItem<String>(
+                          value: categoria.titulo,
+                          child: Text(categoria.titulo),
+                        );
+                      }).toList(),
+                      onChanged: (valor) {
+                        categoriaController.text = valor ?? '';
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    Material(
+                      color: const Color(0xFFDCE8F5),
+                      borderRadius: BorderRadius.circular(8),
+                      clipBehavior: Clip.antiAlias,
+                      child: SwitchListTile(
+                        contentPadding:
+                            const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: const Text(
+                          'Produto ativo',
+                          style: TextStyle(
+                            color: Color(0xFF081129),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          produtoAtivo
+                              ? 'Ativado'
+                              : 'Desativado',
+                        ),
+                        activeTrackColor:
+                            const Color(0xFF13C28A),
+                        value: produtoAtivo,
+                        onChanged: (valor) {
+                          setState(() {
+                            produtoAtivo = valor;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed:
+                            _enviando ? null : _enviarProduto,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              const Color(0xFF13C28A),
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor:
+                              const Color(0xFF13C28A)
+                                  .withValues(alpha: 0.6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(30),
+                          ),
+                        ),
+                        child: _enviando
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Enviar',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+            bottomNavigationBar,
+          ],
         ),
-      ),
-      bottomNavigationBar: IgnorePointer(
-        ignoring: _ocupado,
-        child: const AppBottomBar(selectedIndex: 2),
       ),
     );
   }
