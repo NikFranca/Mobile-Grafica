@@ -1,10 +1,11 @@
 import 'dart:typed_data';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import '../../models/produto.dart';
+import 'package:file_picker/file_picker.dart';
+//
+import 'package:crud_mobile_grafica/features/widgets/app_bottom_bar.dart';
+import 'package:crud_mobile_grafica/features/products/models/produto.dart';
 
 class ResultadoEdicaoProduto {
   final Produto? produto;

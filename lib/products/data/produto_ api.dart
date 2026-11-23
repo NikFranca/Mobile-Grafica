@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../../features/products/models/produto.dart';
+import 'package:crud_mobile_grafica/features/products/models/produto.dart';
 
 class ProdutoApi {
   const ProdutoApi();
@@ -14,7 +14,7 @@ class ProdutoApi {
     try {
       // Endereço que retorna os produtos.
       final url = Uri.parse(
-        'http://localhost:8081/api/produtos',
+        'https://crud-grafica-mobile-back.onrender.com/produtos',
       );
 
       // Faz a consulta ao servidor.
